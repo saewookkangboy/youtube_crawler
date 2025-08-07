@@ -331,30 +331,7 @@ st.markdown("""
         to { transform: rotate(360deg); }
     }
     
-    /* 고급 설정 확장 영역 - 2025년 트렌드 */
-    .advanced-settings-expanded {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(20px);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-top: 0.75rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        animation: expandSettings 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
-    
-    @keyframes expandSettings {
-        from {
-            opacity: 0;
-            max-height: 0;
-            transform: translateY(-20px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            max-height: 600px;
-            transform: translateY(0) scale(1);
-        }
-    }
+
     
     /* 반응형 디자인 - 2025년 트렌드 */
     @media (max-width: 768px) {
@@ -504,8 +481,7 @@ def main():
             )
             
             # 고급 설정
-            with st.expander("🔧 고급 설정"):
-                st.markdown('<div class="advanced-settings-expanded">', unsafe_allow_html=True)
+            with st.expander("고급 설정"):
                 enable_keyword_analysis = st.checkbox(
                     "키워드 분석",
                     value=True,
@@ -524,7 +500,6 @@ def main():
                     min_value=1, max_value=8, value=4,
                     help="동시에 처리할 작업의 수"
                 )
-                st.markdown('</div>', unsafe_allow_html=True)  # advanced-settings-expanded 닫기
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
     
