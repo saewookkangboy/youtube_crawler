@@ -717,12 +717,17 @@ class YouTubeCrawler:
             # 영상 ID 추출
             video_id = self._extract_video_id(video_url)
             
+            # 발행일 파싱 및 포맷팅
+            parsed_date = self._parse_upload_time(upload_time)
+            formatted_date = parsed_date.strftime('%Y.%m.%d') if parsed_date else 'N/A'
+            
             return {
                 'keyword': keyword,
                 'title': title,
                 'channel_name': channel_name,
                 'view_count': view_count,
                 'upload_time': upload_time,
+                'formatted_upload_date': formatted_date,
                 'video_url': video_url,
                 'video_id': video_id,
                 'crawled_at': datetime.now().isoformat()
@@ -1061,9 +1066,13 @@ class YouTubeCrawler:
             # 댓글 시간 추출
             comment_time = self._extract_comment_time(element)
             
+            # 댓글에서 키워드 추출 (최대 5개)
+            extracted_keywords = self._extract_comment_keywords(comment_text, max_keywords=5)
+            
             return {
                 'video_id': video_id,
                 'comment': comment_text,
+                'extracted_keywords': extracted_keywords,
                 'like_count': like_count,
                 'reply_count': reply_count,
                 'comment_time': comment_time,
@@ -1109,6 +1118,42 @@ class YouTubeCrawler:
             time_element = element.find_element(By.CSS_SELECTOR, "#header-author #published-time-text")
             return time_element.text.strip()
         except:
+            return ""
+    
+    def _extract_comment_keywords(self, comment_text: str, max_keywords: int = 5) -> str:
+        """댓글에서 키워드 추출 (최대 5개, 콤마로 구분)"""
+        try:
+            if not comment_text or len(comment_text) < 3:
+                return ""
+            
+            # 간단한 키워드 추출 (한글 명사, 영어 단어)
+            keywords = []
+            
+            # 한글 명사 추출 (간단한 패턴 매칭)
+            korean_nouns = re.findall(r'[가-힣]{2,}', comment_text)
+            # 영어 단어 추출 (2글자 이상)
+            english_words = re.findall(r'\b[a-zA-Z]{2,}\b', comment_text)
+            
+            # 한글 명사와 영어 단어 결합
+            all_words = korean_nouns + english_words
+            
+            # 빈도수 계산
+            word_freq = {}
+            for word in all_words:
+                if len(word) >= 2:  # 2글자 이상만
+                    word_freq[word] = word_freq.get(word, 0) + 1
+            
+            # 빈도수 순으로 정렬하여 상위 키워드 선택
+            sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+            
+            # 최대 5개까지 선택
+            selected_keywords = [word for word, freq in sorted_words[:max_keywords]]
+            
+            # 콤마로 구분하여 반환
+            return ", ".join(selected_keywords) if selected_keywords else ""
+            
+        except Exception as e:
+            logger.warning(f"댓글 키워드 추출 오류: {e}")
             return ""
     
     def _sort_and_select_comments(self, comment_data: List[Dict], max_comments: int) -> List[Dict]:
@@ -1336,14 +1381,8 @@ class YouTubeCrawler:
                 # 영상 정보 저장 - 발행일 정보 추가
                 videos_df = pd.DataFrame(videos)
                 
-                # 발행일 파싱 및 추가
-                if 'upload_time' in videos_df.columns:
-                    videos_df['parsed_upload_date'] = videos_df['upload_time'].apply(
-                        lambda x: self._parse_upload_time(x)
-                    )
-                    videos_df['formatted_upload_date'] = videos_df['parsed_upload_date'].apply(
-                        lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if x else 'N/A'
-                    )
+                # 발행일 정보가 이미 포함되어 있으므로 추가 처리 불필요
+                # formatted_upload_date 필드가 이미 YYYY.MM.DD 형식으로 포함됨
                 
                 videos_df.to_excel(writer, sheet_name='Videos', index=False)
                 

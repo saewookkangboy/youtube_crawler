@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from youtube_crawler import YouTubeCrawler
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 
 def show_notifications():
     """Streamlit 세션 상태의 알림들을 표시"""
@@ -819,14 +820,26 @@ def main():
                 fig.update_xaxes(tickangle=45)
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # 키워드별 평균 조회수 (추정)
-                st.subheader("📊 키워드별 인기도")
-                keyword_views = {}
+                # 키워드별 인지도 분석 (개선된 버전)
+                st.subheader("📊 키워드별 인지도")
+                
+                # 키워드별 통계 데이터 수집
+                keyword_stats = {}
                 for video in videos:
                     keyword = video.get('keyword', 'Unknown')
                     view_text = video.get('view_count', '0')
+                    formatted_date = video.get('formatted_upload_date', 'N/A')
                     
-                    # 조회수 텍스트를 숫자로 변환
+                    if keyword not in keyword_stats:
+                        keyword_stats[keyword] = {
+                            'total_views': 0,
+                            'video_count': 0,
+                            'avg_views': 0,
+                            'recent_videos': 0,  # 최근 30일 내 영상
+                            'view_data': []
+                        }
+                    
+                    # 조회수 변환
                     try:
                         if 'M' in view_text:
                             views = float(view_text.replace('M', '')) * 1000000
@@ -835,23 +848,75 @@ def main():
                         else:
                             views = float(view_text.replace(',', ''))
                         
-                        if keyword not in keyword_views:
-                            keyword_views[keyword] = []
-                        keyword_views[keyword].append(views)
+                        keyword_stats[keyword]['total_views'] += views
+                        keyword_stats[keyword]['video_count'] += 1
+                        keyword_stats[keyword]['view_data'].append(views)
+                        
+                        # 최근 영상 체크 (발행일이 있는 경우)
+                        if formatted_date != 'N/A':
+                            try:
+                                video_date = datetime.strptime(formatted_date, '%Y.%m.%d')
+                                days_diff = (datetime.now() - video_date).days
+                                if days_diff <= 30:
+                                    keyword_stats[keyword]['recent_videos'] += 1
+                            except:
+                                pass
+                                
                     except:
                         continue
                 
-                if keyword_views:
-                    avg_views = {k: sum(v)/len(v) for k, v in keyword_views.items()}
+                # 평균 조회수 계산
+                for keyword, stats in keyword_stats.items():
+                    if stats['video_count'] > 0:
+                        stats['avg_views'] = stats['total_views'] / stats['video_count']
+                
+                if keyword_stats:
+                    # 인지도 점수 계산 (평균 조회수 + 최근 영상 가중치)
+                    awareness_scores = {}
+                    for keyword, stats in keyword_stats.items():
+                        # 기본 점수: 평균 조회수 (로그 스케일)
+                        base_score = np.log10(stats['avg_views'] + 1) if stats['avg_views'] > 0 else 0
+                        # 최근 영상 가중치 (최근 영상이 많을수록 높은 점수)
+                        recent_bonus = stats['recent_videos'] * 0.5
+                        # 최종 인지도 점수
+                        awareness_scores[keyword] = base_score + recent_bonus
+                    
+                    # 인지도 점수로 정렬
+                    sorted_keywords = sorted(awareness_scores.items(), key=lambda x: x[1], reverse=True)
+                    
+                    # 차트 데이터 준비
+                    keyword_names = [k for k, v in sorted_keywords]
+                    awareness_values = [v for k, v in sorted_keywords]
+                    avg_views = [keyword_stats[k]['avg_views'] for k in keyword_names]
+                    recent_counts = [keyword_stats[k]['recent_videos'] for k in keyword_names]
+                    
+                    # 인지도 차트
                     fig = px.bar(
-                        x=list(avg_views.keys()),
-                        y=list(avg_views.values()),
-                        title="키워드별 평균 조회수",
-                        color=list(avg_views.values()),
-                        color_continuous_scale='inferno'
+                        x=keyword_names,
+                        y=awareness_values,
+                        title="키워드별 인지도 점수",
+                        color=awareness_values,
+                        color_continuous_scale='viridis',
+                        labels={'x': '키워드', 'y': '인지도 점수', 'color': '점수'}
                     )
                     fig.update_layout(height=300)
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # 상세 통계 테이블
+                    st.subheader("📋 키워드별 상세 통계")
+                    stats_data = []
+                    for keyword in keyword_names:
+                        stats = keyword_stats[keyword]
+                        stats_data.append({
+                            '키워드': keyword,
+                            '평균 조회수': f"{stats['avg_views']:,.0f}",
+                            '총 영상 수': stats['video_count'],
+                            '최근 30일 영상': stats['recent_videos'],
+                            '인지도 점수': f"{awareness_scores[keyword]:.2f}"
+                        })
+                    
+                    stats_df = pd.DataFrame(stats_data)
+                    st.dataframe(stats_df, use_container_width=True)
     
     # 데이터가 없을 때 안내 메시지
     else:
