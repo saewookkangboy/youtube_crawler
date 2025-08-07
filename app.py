@@ -285,36 +285,7 @@ st.markdown("""
         to { transform: rotate(360deg); }
     }
     
-    /* 검색 설정 영역 스타일 - 반응형 */
-    .search-settings-section {
-        border: 1px solid #808080;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin: 1rem 0 2rem 0;
-        background: #fafafa;
-        transition: all 0.3s ease;
-        min-height: 250px;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    
-    .search-settings-section:hover {
-        background: #f5f5f5;
-        border-color: #666666;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* 키워드 경고 메시지 스타일 */
-    .keyword-warning {
-        background: #fff3cd;
-        color: #856404;
-        padding: 0.75rem;
-        border-radius: 6px;
-        border: 1px solid #ffeaa7;
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
+
     
     /* 고급 설정 확장 영역 */
     .advanced-settings-expanded {
@@ -349,16 +320,7 @@ st.markdown("""
             padding: 1rem;
         }
         
-        .search-settings-section {
-            padding: 1rem;
-            min-height: 200px;
-            margin: 0.5rem 0 1rem 0;
-        }
-        
-        .keyword-warning {
-            padding: 0.5rem;
-            font-size: 0.8rem;
-        }
+
     }
 </style>
 """, unsafe_allow_html=True)
@@ -378,37 +340,35 @@ def main():
         # 상단 설정 영역
         st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">⚙️ 크롤링 설정</h2>', unsafe_allow_html=True)
         
-        # 검색 설정 영역 - 전체를 테두리로 감싸기
-        st.markdown('<div class="search-settings-section">', unsafe_allow_html=True)
-        st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">🔍 검색 설정</h3>', unsafe_allow_html=True)
+        # 설정을 3개 컬럼으로 배치
+        col1, col2, col3 = st.columns([1, 1, 1])
         
-        # 키워드 개수 선택
-        keyword_count = st.selectbox(
-            "키워드 개수",
-            options=[1, 2, 3, 4, 5],
-            index=2,
-            help="수집할 키워드의 개수를 선택하세요"
-        )
-        
-        # 선택된 개수만큼 키워드 입력 필드 생성
-        keywords = []
-        for i in range(keyword_count):
-            keyword = st.text_input(
-                f"키워드 {i+1}",
-                placeholder=f"키워드 {i+1}을 입력하세요",
-                help=f"검색할 키워드 {i+1}을 입력하세요"
+        with col1:
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">🔍 검색 설정</h3>', unsafe_allow_html=True)
+            
+            # 키워드 개수 선택
+            keyword_count = st.selectbox(
+                "키워드 개수",
+                options=[1, 2, 3, 4, 5],
+                index=2,
+                help="수집할 키워드의 개수를 선택하세요"
             )
-            if keyword.strip():
-                keywords.append(keyword.strip())
-        
-        # 키워드 검증 - 테두리 내부에 표시
-        if not keywords:
-            st.markdown('<div class="keyword-warning">⚠️ 최소 1개의 키워드를 입력해주세요.</div>', unsafe_allow_html=True)
-            st.stop()
-        st.markdown('</div>', unsafe_allow_html=True)  # search-settings-section 닫기
-        
-        # 나머지 설정을 2개 컬럼으로 배치
-        col2, col3 = st.columns([1, 1])
+            
+            # 선택된 개수만큼 키워드 입력 필드 생성
+            keywords = []
+            for i in range(keyword_count):
+                keyword = st.text_input(
+                    f"키워드 {i+1}",
+                    placeholder=f"키워드 {i+1}을 입력하세요",
+                    help=f"검색할 키워드 {i+1}을 입력하세요"
+                )
+                if keyword.strip():
+                    keywords.append(keyword.strip())
+            
+            # 키워드 검증
+            if not keywords:
+                st.warning("⚠️ 최소 1개의 키워드를 입력해주세요.")
+                st.stop()
         
         with col2:
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📊 수집 설정</h3>', unsafe_allow_html=True)
