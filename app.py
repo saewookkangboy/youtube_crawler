@@ -577,8 +577,7 @@ def main():
     # 서브타이틀
     st.markdown('<p style="text-align: center; color: #4a5568; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 400;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
     
-    # 실시간 알림 표시
-    show_notifications()
+    # 실시간 알림 표시 (현재 비활성화)
     
     # 크롤링 진행 중 표시 (세션 상태 확인)
     if hasattr(st.session_state, 'crawling_completed') and not st.session_state.crawling_completed:
