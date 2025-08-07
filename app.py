@@ -956,16 +956,50 @@ def main():
                 if all_comments:
                     ws_comments = wb.create_sheet("Comments")
                     
-                    # 헤더 추가
+                    # 헤더 추가 (Comment 옆에 키워드 컬럼 추가)
                     if all_comments:
-                        headers = list(all_comments[0].keys())
-                        for col, header in enumerate(headers, 1):
+                        # 기존 헤더 가져오기
+                        original_headers = list(all_comments[0].keys())
+                        
+                        # Comment 컬럼 위치 찾기
+                        comment_col_index = None
+                        for i, header in enumerate(original_headers):
+                            if header == 'comment':
+                                comment_col_index = i
+                                break
+                        
+                        # 새로운 헤더 생성 (Comment 옆에 키워드 컬럼 추가)
+                        new_headers = []
+                        for i, header in enumerate(original_headers):
+                            new_headers.append(header)
+                            # Comment 컬럼 다음에 키워드 컬럼 추가
+                            if i == comment_col_index:
+                                new_headers.append('추출된_키워드(5개)')
+                        
+                        # 헤더 추가
+                        for col, header in enumerate(new_headers, 1):
                             ws_comments.cell(row=1, column=col, value=header)
                         
                         # 데이터 추가
                         for row, comment in enumerate(all_comments, 2):
-                            for col, header in enumerate(headers, 1):
-                                ws_comments.cell(row=row, column=col, value=str(comment.get(header, '')))
+                            col_offset = 0
+                            for i, header in enumerate(original_headers):
+                                current_col = i + 1 + col_offset
+                                ws_comments.cell(row=row, column=current_col, value=str(comment.get(header, '')))
+                                
+                                # Comment 컬럼 다음에 키워드 데이터 추가
+                                if i == comment_col_index:
+                                    col_offset += 1
+                                    keyword_col = current_col + 1
+                                    extracted_keywords = comment.get('extracted_keywords', '')
+                                    # 키워드가 5개를 초과하면 5개만 표시
+                                    if extracted_keywords:
+                                        keywords_list = [kw.strip() for kw in extracted_keywords.split(',')]
+                                        keywords_list = keywords_list[:5]  # 최대 5개만
+                                        formatted_keywords = ', '.join(keywords_list)
+                                        ws_comments.cell(row=row, column=keyword_col, value=formatted_keywords)
+                                    else:
+                                        ws_comments.cell(row=row, column=keyword_col, value='')
                 
                 # 키워드 분석 시트 (댓글이 있고 키워드 분석이 활성화된 경우)
                 if all_comments and enable_keyword_analysis:
