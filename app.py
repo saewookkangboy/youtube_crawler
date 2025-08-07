@@ -928,13 +928,55 @@ def main():
                 st.info("💾 데이터를 저장하고 있습니다...")
             progress_bar.progress(0.95)
             
-            saved_file = crawler.save_to_excel(videos, all_comments, filename)
-            
-            progress_bar.progress(1.0)
-            with status_container:
-                st.success("✅ 크롤링 완료!")
-            
-            if saved_file:
+            try:
+                # Streamlit Cloud 환경에서 직접 엑셀 생성
+                import io
+                from openpyxl import Workbook
+                from openpyxl.utils.dataframe import dataframe_to_rows
+                
+                # 메모리에서 엑셀 파일 생성
+                wb = Workbook()
+                
+                # 영상 정보 시트
+                if videos:
+                    ws_videos = wb.active
+                    ws_videos.title = "Videos"
+                    
+                    # 헤더 추가
+                    if videos:
+                        headers = list(videos[0].keys())
+                        for col, header in enumerate(headers, 1):
+                            ws_videos.cell(row=1, column=col, value=header)
+                        
+                        # 데이터 추가
+                        for row, video in enumerate(videos, 2):
+                            for col, header in enumerate(headers, 1):
+                                ws_videos.cell(row=row, column=col, value=str(video.get(header, '')))
+                
+                # 댓글 정보 시트
+                if all_comments:
+                    ws_comments = wb.create_sheet("Comments")
+                    
+                    # 헤더 추가
+                    if all_comments:
+                        headers = list(all_comments[0].keys())
+                        for col, header in enumerate(headers, 1):
+                            ws_comments.cell(row=1, column=col, value=header)
+                        
+                        # 데이터 추가
+                        for row, comment in enumerate(all_comments, 2):
+                            for col, header in enumerate(headers, 1):
+                                ws_comments.cell(row=row, column=col, value=str(comment.get(header, '')))
+                
+                # 메모리에 엑셀 파일 저장
+                excel_buffer = io.BytesIO()
+                wb.save(excel_buffer)
+                excel_buffer.seek(0)
+                
+                progress_bar.progress(1.0)
+                with status_container:
+                    st.success("✅ 크롤링 완료!")
+                
                 st.success(f"🎉 크롤링이 완료되었습니다!")
                 
                 # 다운로드 버튼
