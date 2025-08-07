@@ -274,7 +274,7 @@ class YouTubeCrawler:
             # Streamlit Cloud 환경 감지
             if os.environ.get('STREAMLIT_SERVER_RUN_ON_IP') or os.environ.get('STREAMLIT_SERVER_PORT'):
                 # Streamlit Cloud 환경에서는 시스템에 설치된 Chrome 사용
-                chrome_options.binary_location = "/usr/bin/chromium-browser"
+                chrome_options.binary_location = "/usr/bin/chromium"
                 service = Service("/usr/bin/chromedriver")
                 self.driver = webdriver.Chrome(service=service, options=chrome_options)
             else:
