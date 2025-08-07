@@ -4,8 +4,9 @@ import os
 import time
 from datetime import datetime, timedelta
 from youtube_crawler import YouTubeCrawler
-import plotly.express as px
-import plotly.graph_objects as go
+
+# plotly 대신 streamlit의 기본 차트 기능 사용
+PLOTLY_AVAILABLE = False
 
 # 페이지 설정
 st.set_page_config(
@@ -486,28 +487,113 @@ def main():
                 st.info("💾 데이터를 저장하고 있습니다...")
             progress_bar.progress(0.95)
             
-            saved_file = crawler.save_to_excel(videos, all_comments, filename)
-            
-            progress_bar.progress(1.0)
-            with status_container:
-                st.success("✅ 크롤링 완료!")
-            
-            if saved_file:
+            # Streamlit Cloud 환경에서 직접 엑셀 생성
+            try:
+                import io
+                from openpyxl import Workbook
+                from openpyxl.utils.dataframe import dataframe_to_rows
+                
+                # 메모리에서 엑셀 파일 생성
+                wb = Workbook()
+                
+                # 영상 정보 시트
+                if videos:
+                    ws_videos = wb.active
+                    ws_videos.title = "Videos"
+                    
+                    # 헤더 추가
+                    if videos:
+                        headers = list(videos[0].keys())
+                        for col, header in enumerate(headers, 1):
+                            ws_videos.cell(row=1, column=col, value=header)
+                        
+                        # 데이터 추가
+                        for row, video in enumerate(videos, 2):
+                            for col, header in enumerate(headers, 1):
+                                ws_videos.cell(row=row, column=col, value=str(video.get(header, '')))
+                
+                # 댓글 정보 시트
+                if all_comments:
+                    ws_comments = wb.create_sheet("Comments")
+                    
+                    # 헤더 추가
+                    if all_comments:
+                        headers = list(all_comments[0].keys())
+                        for col, header in enumerate(headers, 1):
+                            ws_comments.cell(row=1, column=col, value=header)
+                        
+                        # 데이터 추가
+                        for row, comment in enumerate(all_comments, 2):
+                            for col, header in enumerate(headers, 1):
+                                ws_comments.cell(row=row, column=col, value=str(comment.get(header, '')))
+                
+                # 메모리에 엑셀 파일 저장
+                excel_buffer = io.BytesIO()
+                wb.save(excel_buffer)
+                excel_buffer.seek(0)
+                
+                progress_bar.progress(1.0)
+                with status_container:
+                    st.success("✅ 크롤링 완료!")
+                
                 st.success(f"🎉 크롤링이 완료되었습니다!")
                 
                 # 다운로드 버튼
-                with open(saved_file, 'rb') as f:
+                st.download_button(
+                    label="📥 엑셀 파일 다운로드",
+                    data=excel_buffer.getvalue(),
+                    file_name=filename,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                
+                # CSV 다운로드 버튼도 추가
+                if videos:
+                    videos_df = pd.DataFrame(videos)
+                    csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
                     st.download_button(
-                        label="📥 엑셀 파일 다운로드",
-                        data=f.read(),
-                        file_name=filename,
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        label="📥 영상 데이터 CSV 다운로드",
+                        data=csv_videos,
+                        file_name="videos.csv",
+                        mime="text/csv"
+                    )
+                
+                if all_comments:
+                    comments_df = pd.DataFrame(all_comments)
+                    csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 댓글 데이터 CSV 다운로드",
+                        data=csv_comments,
+                        file_name="comments.csv",
+                        mime="text/csv"
+                    )
+                
+            except Exception as excel_error:
+                st.error(f"❌ 엑셀 파일 생성 오류: {str(excel_error)}")
+                # CSV로 대체
+                if videos:
+                    videos_df = pd.DataFrame(videos)
+                    csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 영상 데이터 CSV 다운로드",
+                        data=csv_videos,
+                        file_name="videos.csv",
+                        mime="text/csv"
+                    )
+                
+                if all_comments:
+                    comments_df = pd.DataFrame(all_comments)
+                    csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 댓글 데이터 CSV 다운로드",
+                        data=csv_comments,
+                        file_name="comments.csv",
+                        mime="text/csv"
                     )
                 
                 # 세션 상태에 데이터 저장
                 st.session_state.videos = videos
                 st.session_state.comments = all_comments
-                st.session_state.filename = saved_file
+                st.session_state.filename = filename
                 st.session_state.start_date = start_date
                 st.session_state.end_date = end_date
                 
@@ -657,15 +743,17 @@ def main():
                     keyword_counts[keyword] = keyword_counts.get(keyword, 0) + 1
                 
                 st.subheader("🔍 키워드별 영상 수")
-                fig = px.bar(
-                    x=list(keyword_counts.keys()),
-                    y=list(keyword_counts.values()),
-                    title="키워드별 수집된 영상 수",
-                    color=list(keyword_counts.values()),
-                    color_continuous_scale='viridis'
-                )
-                fig.update_layout(height=300)
-                st.plotly_chart(fig, use_container_width=True)
+                # Streamlit 기본 차트 사용
+                chart_data = pd.DataFrame({
+                    '키워드': list(keyword_counts.keys()),
+                    '영상 수': list(keyword_counts.values())
+                })
+                st.bar_chart(chart_data.set_index('키워드'))
+                
+                # 상세 정보도 표시
+                st.write("**상세 정보:**")
+                for keyword, count in keyword_counts.items():
+                    st.write(f"- {keyword}: {count}개")
                 
                 # 채널별 영상 수
                 channel_counts = {}
@@ -677,16 +765,17 @@ def main():
                 top_channels = sorted(channel_counts.items(), key=lambda x: x[1], reverse=True)[:5]
                 
                 st.subheader("🏆 인기 채널 TOP 5")
-                fig = px.bar(
-                    x=[channel for channel, count in top_channels],
-                    y=[count for channel, count in top_channels],
-                    title="상위 5개 채널별 영상 수",
-                    color=[count for channel, count in top_channels],
-                    color_continuous_scale='plasma'
-                )
-                fig.update_layout(height=300)
-                fig.update_xaxes(tickangle=45)
-                st.plotly_chart(fig, use_container_width=True)
+                # Streamlit 기본 차트 사용
+                channel_data = pd.DataFrame({
+                    '채널명': [channel for channel, count in top_channels],
+                    '영상 수': [count for channel, count in top_channels]
+                })
+                st.bar_chart(channel_data.set_index('채널명'))
+                
+                # 상세 정보도 표시
+                st.write("**상세 정보:**")
+                for i, (channel, count) in enumerate(top_channels, 1):
+                    st.write(f"{i}. {channel}: {count}개")
                 
                 # 키워드별 평균 조회수 (추정)
                 st.subheader("📊 키워드별 인기도")
@@ -712,15 +801,17 @@ def main():
                 
                 if keyword_views:
                     avg_views = {k: sum(v)/len(v) for k, v in keyword_views.items()}
-                    fig = px.bar(
-                        x=list(avg_views.keys()),
-                        y=list(avg_views.values()),
-                        title="키워드별 평균 조회수",
-                        color=list(avg_views.values()),
-                        color_continuous_scale='inferno'
-                    )
-                    fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                    # Streamlit 기본 차트 사용
+                    views_data = pd.DataFrame({
+                        '키워드': list(avg_views.keys()),
+                        '평균 조회수': list(avg_views.values())
+                    })
+                    st.bar_chart(views_data.set_index('키워드'))
+                    
+                    # 상세 정보도 표시
+                    st.write("**상세 정보:**")
+                    for keyword, avg_view in avg_views.items():
+                        st.write(f"- {keyword}: {avg_view:,.0f}회")
     
     # 데이터가 없을 때 안내 메시지
     else:
