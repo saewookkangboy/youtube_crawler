@@ -635,17 +635,18 @@ def main():
             
             collect_comments = st.checkbox(
                 "💬 댓글 수집",
-                value=False,
+                value=True,  # 기본값을 True로 변경
                 help="영상 댓글 수집 활성화"
             )
             
             if collect_comments:
                 comments_per_video = st.number_input(
                     "영상당 댓글 수",
-                    min_value=1, max_value=100, value=20,
+                    min_value=1, max_value=100, value=10,  # 기본값을 10으로 변경
                     step=1,
-                    help="영상당 수집할 댓글의 수"
+                    help="영상당 수집할 댓글의 수 (너무 많으면 시간이 오래 걸릴 수 있습니다)"
                 )
+                st.info("💡 댓글 수집은 시간이 오래 걸릴 수 있습니다. 영상당 댓글 수를 조절해보세요.")
             else:
                 comments_per_video = 0
         
@@ -817,11 +818,25 @@ def main():
                     
                     if video.get('video_id'):
                         try:
+                            add_log(f"💬 댓글 수집 시도 - {video.get('title', 'Unknown')[:30]}... (ID: {video['video_id']})", "info")
                             comments = crawler.get_video_comments(video['video_id'], comments_per_video)
-                            all_comments.extend(comments)
+                            
+                            if comments:
+                                all_comments.extend(comments)
+                                add_log(f"✅ 댓글 수집 성공 - {len(comments)}개 댓글 수집", "success")
+                            else:
+                                add_log(f"⚠️ 댓글 없음 - {video.get('title', 'Unknown')[:30]}...", "warning")
+                                
                         except Exception as comment_error:
                             error_msg = str(comment_error)
                             add_log(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)", "error")
+                            
+                            # 상세 오류 정보 표시
+                            with st.expander(f"🔧 댓글 수집 오류 상세 정보 - {video.get('title', 'Unknown')[:30]}..."):
+                                st.error(f"**오류 유형**: {type(comment_error).__name__}")
+                                st.error(f"**오류 메시지**: {error_msg}")
+                                st.error(f"**영상 ID**: {video.get('video_id', 'N/A')}")
+                                st.error(f"**영상 제목**: {video.get('title', 'N/A')}")
                             
                             # ChromeDriver 재연결 시도
                             if "connection" in error_msg.lower() or "webdriver" in error_msg.lower():
@@ -997,7 +1012,12 @@ def main():
                 status_text.text("✅ 크롤링 완료!")
                 progress_text.text("100%")
                 
+                # 댓글 수집 결과 로그
+                if collect_comments:
+                    add_log(f"📊 댓글 수집 완료 - 총 {len(all_comments)}개 댓글 수집", "success")
+                
                 st.success(f"🎉 크롤링이 완료되었습니다!")
+                st.info(f"📊 수집 결과: 영상 {len(videos)}개, 댓글 {len(all_comments)}개")
                 
                 # 세션 상태에 데이터 저장 (파일 다운로드용)
                 st.session_state.videos = videos
@@ -1005,6 +1025,9 @@ def main():
                 st.session_state.excel_buffer = excel_buffer.getvalue()
                 st.session_state.filename = filename
                 st.session_state.crawling_completed = True
+                
+                # 디버깅 정보 표시
+                add_log(f"💾 세션 상태 저장 완료 - 영상: {len(videos)}, 댓글: {len(all_comments)}", "info")
                 
             except Exception as excel_error:
                 st.error(f"❌ 엑셀 파일 생성 오류: {str(excel_error)}")
@@ -1145,13 +1168,22 @@ def main():
                     st.info("🎥 수집된 영상이 없습니다.")
             
             with tab2:
-                if comments:
+                if comments and len(comments) > 0:
                     df_comments = pd.DataFrame(comments)
                     st.dataframe(df_comments.head(10), use_container_width=True)  # 상위 10개만 표시
                     if len(comments) > 10:
                         st.info(f"📊 총 {len(comments)}개 댓글 중 상위 10개를 표시합니다.")
+                    
+                    # 댓글 데이터 디버깅 정보
+                    with st.expander("🔧 댓글 데이터 디버깅 정보"):
+                        st.write(f"**댓글 개수**: {len(comments)}개")
+                        st.write(f"**댓글 컬럼**: {list(df_comments.columns)}")
+                        if len(comments) > 0:
+                            st.write(f"**첫 번째 댓글 샘플**:")
+                            st.json(comments[0])
                 else:
-                    st.info("💬 수집된 댓글이 없습니다.")
+                    st.warning("💬 수집된 댓글이 없습니다.")
+                    st.info("💡 댓글 수집이 비활성화되었거나 댓글 수집에 실패했을 수 있습니다.")
         
         with col_download:
             st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📥 파일 다운로드</h3>', unsafe_allow_html=True)
