@@ -285,22 +285,8 @@ st.markdown("""
         to { transform: rotate(360deg); }
     }
     
-    /* 크롤링 설정 컨테이너 스타일 */
-    .crawling-settings-container {
-        border: 1px solid #808080;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        background: #ffffff;
-        transition: all 0.3s ease;
-    }
-    
-    .crawling-settings-container:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* 설정 섹션 스타일 */
-    .settings-section {
+    /* 검색 설정 영역 스타일 */
+    .search-settings-section {
         border: 1px solid #808080;
         border-radius: 6px;
         padding: 1rem;
@@ -309,7 +295,7 @@ st.markdown("""
         transition: all 0.3s ease;
     }
     
-    .settings-section:hover {
+    .search-settings-section:hover {
         background: #f5f5f5;
         border-color: #666666;
     }
@@ -347,11 +333,7 @@ st.markdown("""
             padding: 1rem;
         }
         
-        .crawling-settings-container {
-            padding: 1rem;
-        }
-        
-        .settings-section {
+        .search-settings-section {
             padding: 0.75rem;
         }
     }
@@ -370,15 +352,14 @@ def main():
     
     # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
     with st.container():
-        # 상단 설정 영역 - 테두리 적용
-        st.markdown('<div class="crawling-settings-container">', unsafe_allow_html=True)
+        # 상단 설정 영역
         st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">⚙️ 크롤링 설정</h2>', unsafe_allow_html=True)
         
         # 설정을 3개 컬럼으로 배치
         col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
-            st.markdown('<div class="settings-section">', unsafe_allow_html=True)
+            st.markdown('<div class="search-settings-section">', unsafe_allow_html=True)
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">🔍 검색 설정</h3>', unsafe_allow_html=True)
             
             # 키워드 개수 선택
@@ -404,10 +385,9 @@ def main():
             if not keywords:
                 st.warning("⚠️ 최소 1개의 키워드를 입력해주세요.")
                 st.stop()
-            st.markdown('</div>', unsafe_allow_html=True)  # col1 settings-section 닫기
+            st.markdown('</div>', unsafe_allow_html=True)  # col1 search-settings-section 닫기
         
         with col2:
-            st.markdown('<div class="settings-section">', unsafe_allow_html=True)
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📊 수집 설정</h3>', unsafe_allow_html=True)
             
             videos_per_keyword = st.number_input(
@@ -432,10 +412,8 @@ def main():
                 )
             else:
                 comments_per_video = 0
-            st.markdown('</div>', unsafe_allow_html=True)  # col2 settings-section 닫기
         
         with col3:
-            st.markdown('<div class="settings-section">', unsafe_allow_html=True)
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📅 날짜 & 파일</h3>', unsafe_allow_html=True)
             
             # 날짜 필터링 설정
@@ -491,9 +469,6 @@ def main():
                 st.markdown('</div>', unsafe_allow_html=True)  # advanced-settings-expanded 닫기
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
-            st.markdown('</div>', unsafe_allow_html=True)  # col3 settings-section 닫기
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # crawling-settings-container 닫기
     
     # 구분선
     st.markdown("---")
