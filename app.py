@@ -7,6 +7,24 @@ from youtube_crawler import YouTubeCrawler
 import plotly.express as px
 import plotly.graph_objects as go
 
+def show_notifications():
+    """Streamlit 세션 상태의 알림들을 표시"""
+    if 'notifications' in st.session_state and st.session_state.notifications:
+        with st.expander("🔔 실시간 알림", expanded=True):
+            for notification in reversed(st.session_state.notifications):
+                st.markdown(f"""
+                <div style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin: 5px 0; border-left: 4px solid #2196f3;">
+                    <strong>{notification['title']}</strong><br>
+                    <small style="color: #666;">{notification['timestamp']}</small><br>
+                    {notification['message']}
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # 알림 초기화 버튼
+        if st.button("알림 지우기", key="clear_notifications"):
+            st.session_state.notifications = []
+            st.rerun()
+
 # 페이지 설정
 st.set_page_config(
     page_title="유튜브 크롤러",
@@ -287,6 +305,9 @@ def main():
     # 서브타이틀
     st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 2rem;">현대적인 유튜브 데이터 수집 및 분석 서비스</p>', unsafe_allow_html=True)
     
+    # 실시간 알림 표시
+    show_notifications()
+    
     # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
     with st.container():
         # 상단 설정 영역
@@ -405,6 +426,8 @@ def main():
             with status_container:
                 with st.spinner("🔄 크롤러를 초기화하고 있습니다..."):
                     crawler = YouTubeCrawler()
+                    # Streamlit 세션 상태를 크롤러에 전달
+                    crawler.st_session_state = st.session_state
                     st.success("✅ 크롤러 초기화 완료")
             
             # 영상 검색
@@ -474,6 +497,8 @@ def main():
                                     crawler.close()
                                     time.sleep(2)
                                     crawler = YouTubeCrawler()
+                                    # Streamlit 세션 상태를 크롤러에 전달
+                                    crawler.st_session_state = st.session_state
                                     with status_container:
                                         st.success("✅ ChromeDriver 재연결 성공")
                                 except Exception as reconnect_error:

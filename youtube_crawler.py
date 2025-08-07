@@ -164,14 +164,27 @@ class YouTubeCrawler:
         self.setup_driver()
         
     def send_notification(self, title, message):
-        """macOS 시스템 알림 전송"""
+        """Streamlit 웹 알림 전송"""
         try:
-            subprocess.run([
-                'osascript', '-e',
-                f'display notification "{message}" with title "{title}"'
-            ], check=True)
+            # Streamlit 세션 상태에 알림 정보 저장
+            if hasattr(self, 'st_session_state'):
+                if 'notifications' not in self.st_session_state:
+                    self.st_session_state.notifications = []
+                
+                notification = {
+                    'title': title,
+                    'message': message,
+                    'timestamp': datetime.now().strftime('%H:%M:%S')
+                }
+                self.st_session_state.notifications.append(notification)
+                
+                # 최대 10개 알림만 유지
+                if len(self.st_session_state.notifications) > 10:
+                    self.st_session_state.notifications = self.st_session_state.notifications[-10:]
+                    
+            logger.info(f"웹 알림 전송: {title} - {message}")
         except Exception as e:
-            logger.error(f"알림 전송 실패: {e}")
+            logger.error(f"웹 알림 전송 실패: {e}")
         
     def setup_driver(self):
         """Chrome 드라이버 설정 - 최적화됨"""
