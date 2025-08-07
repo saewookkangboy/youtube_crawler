@@ -421,7 +421,6 @@ def main():
                     min_value=1, max_value=8, value=4,
                     help="동시에 처리할 작업의 수"
                 )
-            )
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
     
