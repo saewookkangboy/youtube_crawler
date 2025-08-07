@@ -25,12 +25,13 @@
 
 2. **Git 설정 업데이트:**
    ```bash
-   git config --global user.name "your-github-username"
-   git config --global user.email "your-email@example.com"
+   git config --global user.name "saewookkangboy"
+   git config --global user.email "chunghyo@kakao.com"
    ```
 
 3. **원격 저장소 URL 업데이트 (토큰 포함):**
    ```bash
+   # YOUR_TOKEN을 실제 토큰으로 교체하세요
    git remote set-url origin https://YOUR_TOKEN@github.com/saewookkangboy/youtube_crawler.git
    ```
 
