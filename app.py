@@ -398,7 +398,29 @@ def main():
             filename = st.text_input(
                 "출력 파일명",
                 value="youtube_data.xlsx",
-                help="출력할 엑셀 파일의 이름"
+                help="저장할 엑셀 파일명 (확장자 포함)"
+            )
+            
+            # 고급 설정
+            with st.expander("🔧 고급 설정"):
+                enable_keyword_analysis = st.checkbox(
+                    "키워드 분석",
+                    value=True,
+                    help="댓글에서 키워드 및 감정 분석 수행"
+                )
+                
+                excel_encoding = st.selectbox(
+                    "엑셀 인코딩",
+                    options=['utf-8-sig', 'utf-8', 'cp949'],
+                    index=0,
+                    help="엑셀 파일 저장 시 사용할 인코딩"
+                )
+                
+                max_workers = st.slider(
+                    "동시 처리 수",
+                    min_value=1, max_value=8, value=4,
+                    help="동시에 처리할 작업의 수"
+                )
             )
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
@@ -425,9 +447,16 @@ def main():
         try:
             with status_container:
                 with st.spinner("🔄 크롤러를 초기화하고 있습니다..."):
+                    # 설정 적용
+                    config = {
+                        'max_workers': max_workers,
+                        'enable_keyword_analysis': enable_keyword_analysis,
+                        'excel_encoding': excel_encoding,
+                        'max_comments_per_video': comments_per_video if collect_comments else 0
+                    }
+                    
                     crawler = YouTubeCrawler()
-                    # Streamlit 세션 상태를 크롤러에 전달
-                    crawler.st_session_state = st.session_state
+                    crawler.update_config(config)
                     st.success("✅ 크롤러 초기화 완료")
             
             # 영상 검색
@@ -497,8 +526,7 @@ def main():
                                     crawler.close()
                                     time.sleep(2)
                                     crawler = YouTubeCrawler()
-                                    # Streamlit 세션 상태를 크롤러에 전달
-                                    crawler.st_session_state = st.session_state
+                                    crawler.update_config(config)
                                     with status_container:
                                         st.success("✅ ChromeDriver 재연결 성공")
                                 except Exception as reconnect_error:
