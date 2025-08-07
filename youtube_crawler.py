@@ -271,8 +271,16 @@ class YouTubeCrawler:
         chrome_options.add_argument("--disable-speech-synthesis-api")
         
         try:
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            # Streamlit Cloud 환경 감지
+            if os.environ.get('STREAMLIT_SERVER_RUN_ON_IP') or os.environ.get('STREAMLIT_SERVER_PORT'):
+                # Streamlit Cloud 환경에서는 시스템에 설치된 Chrome 사용
+                chrome_options.binary_location = "/usr/bin/chromium-browser"
+                service = Service("/usr/bin/chromedriver")
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            else:
+                # 로컬 환경에서는 ChromeDriverManager 사용
+                service = Service(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
             
             # 타임아웃 설정 (안정성 향상)
             timeout = min(self.config.get('timeout'), 15)

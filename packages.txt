@@ -1,0 +1,4 @@
+# Streamlit Cloud 배포를 위한 시스템 패키지
+chromium-browser
+chromium-chromedriver
+xvfb
