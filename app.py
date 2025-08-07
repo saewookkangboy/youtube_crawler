@@ -285,19 +285,35 @@ st.markdown("""
         to { transform: rotate(360deg); }
     }
     
-    /* 검색 설정 영역 스타일 */
+    /* 검색 설정 영역 스타일 - 반응형 */
     .search-settings-section {
         border: 1px solid #808080;
-        border-radius: 6px;
-        padding: 1rem;
+        border-radius: 8px;
+        padding: 1.5rem;
         margin: 0.5rem 0;
         background: #fafafa;
         transition: all 0.3s ease;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
     }
     
     .search-settings-section:hover {
         background: #f5f5f5;
         border-color: #666666;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 키워드 경고 메시지 스타일 */
+    .keyword-warning {
+        background: #fff3cd;
+        color: #856404;
+        padding: 0.75rem;
+        border-radius: 6px;
+        border: 1px solid #ffeaa7;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
     }
     
     /* 고급 설정 확장 영역 */
@@ -334,7 +350,13 @@ st.markdown("""
         }
         
         .search-settings-section {
-            padding: 0.75rem;
+            padding: 1rem;
+            min-height: 180px;
+        }
+        
+        .keyword-warning {
+            padding: 0.5rem;
+            font-size: 0.8rem;
         }
     }
 </style>
@@ -381,9 +403,9 @@ def main():
                 if keyword.strip():
                     keywords.append(keyword.strip())
             
-            # 키워드 검증
+            # 키워드 검증 - 테두리 내부에 표시
             if not keywords:
-                st.warning("⚠️ 최소 1개의 키워드를 입력해주세요.")
+                st.markdown('<div class="keyword-warning">⚠️ 최소 1개의 키워드를 입력해주세요.</div>', unsafe_allow_html=True)
                 st.stop()
             st.markdown('</div>', unsafe_allow_html=True)  # col1 search-settings-section 닫기
         
