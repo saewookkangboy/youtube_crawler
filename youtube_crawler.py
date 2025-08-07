@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
+# beautifulsoup4는 현재 사용되지 않으므로 제거
 import pandas as pd
 import requests
 from urllib.parse import urlparse, parse_qs
