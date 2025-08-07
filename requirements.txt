@@ -1,0 +1,27 @@
+# YouTube 크롤러 의존성 패키지
+
+# 핵심 의존성
+selenium>=4.15.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+webdriver-manager>=4.0.0
+python-dotenv>=1.0.0
+
+# 성능 최적화 (선택사항)
+psutil>=5.9.0          # 메모리 사용량 모니터링
+aiohttp>=3.8.0         # 비동기 HTTP 클라이언트 (향후 확장용)
+
+# 개발 도구 (선택사항)
+pytest>=7.4.0          # 테스트 프레임워크
+pytest-asyncio>=0.21.0 # 비동기 테스트 지원
+black>=23.0.0          # 코드 포맷터
+flake8>=6.0.0          # 코드 린터
+
+# 로깅 및 모니터링 (선택사항)
+colorlog>=6.7.0        # 컬러 로깅
+rich>=13.0.0           # 리치 콘솔 출력
+
+# 데이터 처리 (선택사항)
+numpy>=1.24.0          # 수치 계산
+matplotlib>=3.7.0      # 그래프 생성
+seaborn>=0.12.0        # 통계 시각화 

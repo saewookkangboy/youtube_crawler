@@ -1,0 +1,35 @@
+# YouTube 크롤러 환경 변수 설정 (안정화 버전)
+
+# 성능 설정
+MAX_WORKERS=2                    # 스레드 풀 크기 (안정성을 위해 2로 제한)
+TIMEOUT=15                       # 타임아웃 (초) (안정성을 위해 15초로 제한)
+RETRY_COUNT=3                    # 재시도 횟수
+
+# 캐시 설정
+CACHE_ENABLED=true               # 캐시 활성화
+CACHE_EXPIRY=86400              # 캐시 만료 시간 (초, 24시간)
+
+# 브라우저 설정
+HEADLESS=true                    # 헤드리스 모드
+DISABLE_IMAGES=true              # 이미지 비활성화
+DISABLE_AUDIO=true               # 오디오 비활성화
+DISABLE_EXTENSIONS=true          # 확장 프로그램 비활성화
+
+# 스크롤 설정
+SCROLL_COUNT=3                   # 스크롤 횟수 (안정성을 위해 3으로 제한)
+WAIT_TIME=1.5                    # 스크롤 간 대기 시간 (초)
+
+# 메모리 설정
+MAX_MEMORY_MB=1024               # 최대 메모리 사용량 (MB)
+
+# 로깅 설정
+LOG_LEVEL=INFO                   # 로그 레벨
+LOG_FILE=youtube_crawler.log     # 로그 파일명
+
+# 알림 설정
+NOTIFICATIONS_ENABLED=true       # 시스템 알림 활성화
+
+# 배치 처리 설정
+BATCH_SIZE=2                     # 배치 크기 (안정성을 위해 2로 제한)
+COMMENT_TIMEOUT=45               # 댓글 수집 타임아웃 (초)
+MAX_COMMENTS_PER_VIDEO=15        # 영상당 최대 댓글 수 (안정성을 위해 15로 제한) 
