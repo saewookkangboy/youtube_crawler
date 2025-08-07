@@ -718,20 +718,20 @@ def main():
             st.error("❌ 키워드를 입력해주세요.")
             st.stop()
         
-        # 진행 상황 표시
-        progress_bar = st.progress(0)
+        # 콤팩트한 진행 상황 표시
+        progress_container = st.container()
         
-        # 실시간 로그 표시 영역
-        log_container = st.container()
-        
-        # 크롤링 상태 표시 컨테이너
-        status_container = st.container()
-        
-        # 실시간 통계 컨테이너
-        stats_container = st.container()
-        
-        # 진행 단계별 상태 표시
-        step_container = st.container()
+        with progress_container:
+            # 진행률 바와 상태 메시지를 한 줄에 표시
+            col_progress, col_status = st.columns([3, 1])
+            
+            with col_progress:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+            
+            with col_status:
+                st.markdown("**진행률**")
+                progress_text = st.empty()
         
         # 실시간 로그 메시지 저장
         if 'crawling_logs' not in st.session_state:
@@ -754,41 +754,30 @@ def main():
         # 크롤러 실행
         crawler = None
         try:
-            # 단계 1: 크롤러 초기화
-            with step_container:
-                st.markdown('<div style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea;">', unsafe_allow_html=True)
-                st.markdown("🔬 **1단계: 크롤러 초기화 중...**", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+            # 단계 1: 크롤러 초기화 (콤팩트)
+            status_text.text("🔬 크롤러 초기화 중...")
+            progress_text.text("10%")
             
-            with status_container:
-                with st.spinner("🔬 크롤러를 초기화하고 있습니다..."):
-                    add_log("🔬 크롤러 초기화 시작", "info")
-                    
-                    # 설정 적용
-                    config = {
-                        'max_workers': max_workers,
-                        'enable_keyword_analysis': enable_keyword_analysis,
-                        'excel_encoding': excel_encoding,
-                        'max_comments_per_video': comments_per_video if collect_comments else 0
-                    }
-                    
-                    crawler = YouTubeCrawler()
-                    crawler.update_config(config)
-                    
-                    add_log("✅ 크롤러 초기화 완료", "success")
-                    st.success("✅ 크롤러 초기화 완료")
+            add_log("🔬 크롤러 초기화 시작", "info")
+            
+            # 설정 적용
+            config = {
+                'max_workers': max_workers,
+                'enable_keyword_analysis': enable_keyword_analysis,
+                'excel_encoding': excel_encoding,
+                'max_comments_per_video': comments_per_video if collect_comments else 0
+            }
+            
+            crawler = YouTubeCrawler()
+            crawler.update_config(config)
+            
+            add_log("✅ 크롤러 초기화 완료", "success")
             
             progress_bar.progress(0.1)
             
-            # 단계 2: 영상 검색
-            with step_container:
-                st.markdown('<div style="background: rgba(56, 161, 105, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #38a169;">', unsafe_allow_html=True)
-                st.markdown("🔍 **2단계: 영상 검색 중...**", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            with status_container:
-                add_log("🔍 영상 검색 시작", "info")
-                st.info("🔍 영상을 검색하고 있습니다...")
+            # 단계 2: 영상 검색 (콤팩트)
+            status_text.text("🔍 영상 검색 중...")
+            add_log("🔍 영상 검색 시작", "info")
             
             videos = []
             
@@ -796,9 +785,9 @@ def main():
                 progress = 0.1 + (i / len(keywords)) * 0.4  # 10%~50%
                 progress_bar.progress(progress)
                 
-                # 인터랙티브 진행 단계 표시
-                with status_container:
-                    st.info(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})")
+                # 콤팩트한 진행 상태 업데이트
+                status_text.text(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})")
+                progress_text.text(f"{int(progress * 100)}%")
                 
                 # 날짜 필터링 적용
                 start_dt = datetime.combine(start_date, datetime.min.time()) if start_date else None
@@ -806,125 +795,51 @@ def main():
                 
                 keyword_videos = crawler.search_videos([keyword], videos_per_keyword, start_dt, end_dt)
                 videos.extend(keyword_videos)
-                
-                # 실시간 통계 업데이트
-                with stats_container:
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.markdown(f"""
-                        <div class="live-counter primary">
-                            <span class="loading-spinner"></span>수집된 영상: {len(videos)}개
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"""
-                        <div class="live-counter success">
-                            완료된 키워드: {i+1}/{len(keywords)}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with col3:
-                        st.markdown(f"""
-                        <div class="live-counter warning">
-                            진행률: {int(progress * 100)}%
-                        </div>
-                        """, unsafe_allow_html=True)
-                
-                with status_container:
-                    st.success(f"✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견")
             
             if not videos:
                 add_log("❌ 검색된 영상이 없습니다.", "error")
                 st.error("❌ 검색된 영상이 없습니다.")
                 return
             
-            # 단계 3: 댓글 수집 (선택사항)
+            # 단계 3: 댓글 수집 (선택사항) - 콤팩트
             all_comments = []
             if collect_comments and videos:
-                with step_container:
-                    st.markdown('<div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">', unsafe_allow_html=True)
-                    st.markdown("💬 **3단계: 댓글 수집 중...**", unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-                
-                with status_container:
-                    st.info("💬 댓글을 수집하고 있습니다...")
+                status_text.text("💬 댓글 수집 중...")
+                add_log("💬 댓글 수집 시작", "info")
                 
                 for i, video in enumerate(videos):
                     progress = 0.5 + (i / len(videos)) * 0.4  # 50%~90%
                     progress_bar.progress(progress)
                     
-                    # 인터랙티브 댓글 수집 진행 단계
-                    with status_container:
-                        st.info(f"💬 댓글 수집 중... ({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...")
+                    # 콤팩트한 댓글 수집 진행 상태
+                    status_text.text(f"💬 댓글 수집 중... ({i+1}/{len(videos)})")
+                    progress_text.text(f"{int(progress * 100)}%")
                     
                     if video.get('video_id'):
                         try:
                             comments = crawler.get_video_comments(video['video_id'], comments_per_video)
                             all_comments.extend(comments)
-                            
-                            # 실시간 댓글 통계 업데이트
-                            with stats_container:
-                                col1, col2, col3 = st.columns(3)
-                                with col1:
-                                    st.markdown(f"""
-                                    <div class="live-counter primary">
-                                        수집된 영상: {len(videos)}개
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                with col2:
-                                    st.markdown(f"""
-                                    <div class="live-counter success">
-                                        수집된 댓글: {len(all_comments)}개
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                with col3:
-                                    st.markdown(f"""
-                                    <div class="live-counter warning">
-                                        진행률: {int(progress * 100)}%
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                            
-                            # 댓글 수집 결과 표시
-                            if comments:
-                                latest_time = comments[0].get('comment_time', 'N/A') if comments else 'N/A'
-                                top_likes = max([comment.get('like_count', 0) for comment in comments])
-                                with status_container:
-                                    st.success(f"✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})")
-                            else:
-                                with status_container:
-                                    st.warning("⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다")
                         except Exception as comment_error:
                             error_msg = str(comment_error)
-                            with status_container:
-                                st.error(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)")
+                            add_log(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)", "error")
                             
                             # ChromeDriver 재연결 시도
                             if "connection" in error_msg.lower() or "webdriver" in error_msg.lower():
                                 try:
-                                    with status_container:
-                                        add_log("🔄 ChromeDriver 재연결 시도 중...", "info")
-                                        st.info("🔄 ChromeDriver 재연결 시도 중...")
+                                    add_log("🔄 ChromeDriver 재연결 시도 중...", "info")
                                     crawler.close()
                                     time.sleep(2)
                                     crawler = YouTubeCrawler()
                                     crawler.update_config(config)
-                                    with status_container:
-                                        add_log("✅ ChromeDriver 재연결 성공", "success")
-                                        st.success("✅ ChromeDriver 재연결 성공")
+                                    add_log("✅ ChromeDriver 재연결 성공", "success")
                                 except Exception as reconnect_error:
-                                    with status_container:
-                                        add_log(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}", "error")
-                                        st.error(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}")
+                                    add_log(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}", "error")
                                     break
             
-            # 단계 4: 데이터 저장
-            with step_container:
-                st.markdown('<div style="background: rgba(236, 72, 153, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #ec4899;">', unsafe_allow_html=True)
-                st.markdown("💾 **4단계: 데이터 저장 중...**", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            with status_container:
-                add_log("💾 데이터 저장 시작", "info")
-                st.info("💾 데이터를 저장하고 있습니다...")
+            # 단계 4: 데이터 저장 (콤팩트)
+            status_text.text("💾 데이터 저장 중...")
+            progress_text.text("95%")
+            add_log("💾 데이터 저장 시작", "info")
             progress_bar.progress(0.95)
             
             try:
@@ -1079,39 +994,17 @@ def main():
                 excel_buffer.seek(0)
                 
                 progress_bar.progress(1.0)
-                with status_container:
-                    st.success("✅ 크롤링 완료!")
+                status_text.text("✅ 크롤링 완료!")
+                progress_text.text("100%")
                 
                 st.success(f"🎉 크롤링이 완료되었습니다!")
                 
-                # 다운로드 버튼
-                st.download_button(
-                    label="📥 엑셀 파일 다운로드",
-                    data=excel_buffer.getvalue(),
-                    file_name=filename,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-                
-                # CSV 다운로드 버튼도 추가
-                if videos:
-                    videos_df = pd.DataFrame(videos)
-                    csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
-                    st.download_button(
-                        label="📥 영상 데이터 CSV 다운로드",
-                        data=csv_videos,
-                        file_name="videos.csv",
-                        mime="text/csv"
-                    )
-                
-                if all_comments:
-                    comments_df = pd.DataFrame(all_comments)
-                    csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
-                    st.download_button(
-                        label="📥 댓글 데이터 CSV 다운로드",
-                        data=csv_comments,
-                        file_name="comments.csv",
-                        mime="text/csv"
-                    )
+                # 세션 상태에 데이터 저장 (파일 다운로드용)
+                st.session_state.videos = videos
+                st.session_state.comments = all_comments
+                st.session_state.excel_buffer = excel_buffer.getvalue()
+                st.session_state.filename = filename
+                st.session_state.crawling_completed = True
                 
             except Exception as excel_error:
                 st.error(f"❌ 엑셀 파일 생성 오류: {str(excel_error)}")
@@ -1183,11 +1076,11 @@ def main():
     # 구분선
     st.markdown("---")
     
-    # 결과 및 분석 영역 - 크롤링과 분석을 나란히 배치
-    if 'videos' in st.session_state:
-        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">📊 크롤링 결과 & 분석</h2>', unsafe_allow_html=True)
+    # 결과 미리보기 및 파일 다운로드 영역
+    if hasattr(st.session_state, 'crawling_completed') and st.session_state.crawling_completed:
+        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">📊 크롤링 결과 미리보기</h2>', unsafe_allow_html=True)
         
-        videos = st.session_state.videos
+        videos = st.session_state.get('videos', [])
         comments = st.session_state.get('comments', [])
         
         # 상단 메트릭 카드들
@@ -1224,30 +1117,20 @@ def main():
             """, unsafe_allow_html=True)
         
         with col4:
-            if 'start_date' in st.session_state and 'end_date' in st.session_state:
-                start_dt = st.session_state.start_date
-                end_dt = st.session_state.end_date
-                if start_dt and end_dt:
-                    period_text = f"{start_dt.strftime('%m/%d')}~{end_dt.strftime('%m/%d')}"
-                else:
-                    period_text = "전체 기간"
-            else:
-                period_text = "전체 기간"
-            
             st.markdown(f"""
             <div class="metric-card">
                 <div style="text-align: center;">
                     <h3 style="color: #A8E6CF; font-size: 2rem; margin: 0;">📅</h3>
-                    <p style="color: #666; margin: 0;">{period_text}</p>
+                    <p style="color: #666; margin: 0;">수집 완료</p>
                 </div>
             </div>
             """, unsafe_allow_html=True)
         
-        # 크롤링 결과와 분석을 나란히 배치
-        col_left, col_right = st.columns([1, 1])
+        # 데이터 미리보기와 파일 다운로드를 나란히 배치
+        col_preview, col_download = st.columns([2, 1])
         
-        with col_left:
-            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📋 수집된 데이터</h3>', unsafe_allow_html=True)
+        with col_preview:
+            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📋 데이터 미리보기</h3>', unsafe_allow_html=True)
             
             # 탭 생성
             tab1, tab2 = st.tabs(["🎥 영상 목록", "💬 댓글 목록"])
@@ -1255,134 +1138,74 @@ def main():
             with tab1:
                 if videos:
                     df_videos = pd.DataFrame(videos)
-                    st.dataframe(df_videos, use_container_width=True)
-                    
-                    # CSV 다운로드
-                    csv = df_videos.to_csv(index=False, encoding='utf-8-sig')
-                    st.download_button(
-                        label="📥 영상 데이터 CSV 다운로드",
-                        data=csv,
-                        file_name="videos.csv",
-                        mime="text/csv"
-                    )
+                    st.dataframe(df_videos.head(10), use_container_width=True)  # 상위 10개만 표시
+                    if len(videos) > 10:
+                        st.info(f"📊 총 {len(videos)}개 영상 중 상위 10개를 표시합니다.")
+                else:
+                    st.info("🎥 수집된 영상이 없습니다.")
             
             with tab2:
                 if comments:
                     df_comments = pd.DataFrame(comments)
-                    st.dataframe(df_comments, use_container_width=True)
-                    
-                    # CSV 다운로드
-                    csv = df_comments.to_csv(index=False, encoding='utf-8-sig')
-                    st.download_button(
-                        label="📥 댓글 데이터 CSV 다운로드",
-                        data=csv,
-                        file_name="comments.csv",
-                        mime="text/csv"
-                    )
+                    st.dataframe(df_comments.head(10), use_container_width=True)  # 상위 10개만 표시
+                    if len(comments) > 10:
+                        st.info(f"📊 총 {len(comments)}개 댓글 중 상위 10개를 표시합니다.")
                 else:
                     st.info("💬 수집된 댓글이 없습니다.")
         
-        with col_right:
-            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📈 데이터 분석</h3>', unsafe_allow_html=True)
+        with col_download:
+            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📥 파일 다운로드</h3>', unsafe_allow_html=True)
             
-            if videos:
-                # 키워드별 영상 수
-                keyword_counts = {}
-                for video in videos:
-                    keyword = video.get('keyword', 'Unknown')
-                    keyword_counts[keyword] = keyword_counts.get(keyword, 0) + 1
-                
-                st.subheader("🔍 키워드별 영상 수")
-                # Streamlit 기본 차트 사용
-                chart_data = pd.DataFrame({
-                    '키워드': list(keyword_counts.keys()),
-                    '영상 수': list(keyword_counts.values())
-                })
-                st.bar_chart(chart_data.set_index('키워드'))
-                
-                # 상세 정보도 표시
-                st.write("**상세 정보:**")
-                for keyword, count in keyword_counts.items():
-                    st.write(f"- {keyword}: {count}개")
-                
-                # 채널별 영상 수
-                channel_counts = {}
-                for video in videos:
-                    channel = video.get('channel_name', 'Unknown')
-                    channel_counts[channel] = channel_counts.get(channel, 0) + 1
-                
-                # 상위 5개 채널만 표시
-                top_channels = sorted(channel_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-                
-                st.subheader("🏆 인기 채널 TOP 5")
-                # Streamlit 기본 차트 사용
-                channel_data = pd.DataFrame({
-                    '채널명': [channel for channel, count in top_channels],
-                    '영상 수': [count for channel, count in top_channels]
-                })
-                st.bar_chart(channel_data.set_index('채널명'))
-                
-                # 상세 정보도 표시
-                st.write("**상세 정보:**")
-                for i, (channel, count) in enumerate(top_channels, 1):
-                    st.write(f"{i}. {channel}: {count}개")
-                
-                # 키워드별 인지도 분석 (개선된 버전)
-                st.subheader("📊 키워드별 인지도")
-                
-                # 키워드별 통계 데이터 수집
-                keyword_stats = {}
-                for video in videos:
-                    keyword = video.get('keyword', 'Unknown')
-                    view_text = video.get('view_count', '0')
-                    formatted_date = video.get('formatted_upload_date', 'N/A')
-                    
-                    if keyword not in keyword_stats:
-                        keyword_stats[keyword] = {
-                            'total_views': 0,
-                            'video_count': 0,
-                            'avg_views': 0,
-                            'recent_videos': 0,  # 최근 30일 내 영상
-                            'view_data': []
-                        }
-                    
-                    # 조회수 변환
-                    try:
-                        if 'M' in view_text:
-                            views = float(view_text.replace('M', '')) * 1000000
-                        elif 'K' in view_text:
-                            views = float(view_text.replace('K', '')) * 1000
-                        else:
-                            views = float(view_text.replace(',', ''))
-                        
-                        keyword_stats[keyword]['total_views'] += views
-                        keyword_stats[keyword]['video_count'] += 1
-                        keyword_stats[keyword]['view_data'].append(views)
-                        
-                        # 최근 영상 체크 (발행일이 있는 경우)
-                        if formatted_date != 'N/A':
-                            try:
-                                video_date = datetime.strptime(formatted_date, '%Y.%m.%d')
-                                days_diff = (datetime.now() - video_date).days
-                                if days_diff <= 30:
-                                    keyword_stats[keyword]['recent_videos'] += 1
-                            except:
-                                pass
-                                
-                    except:
-                        continue
-                
-                if keyword_views:
-                    avg_views = {k: sum(v)/len(v) for k, v in keyword_views.items()}
-                    fig = px.bar(
-                        x=list(avg_views.keys()),
-                        y=list(avg_views.values()),
-                        title="키워드별 평균 조회수",
-                        color=list(avg_views.values()),
-                        color_continuous_scale='inferno'
+            # 파일 형식 선택
+            file_format = st.selectbox(
+                "파일 형식 선택",
+                options=["XLSX (Excel)", "CSV"],
+                help="다운로드할 파일 형식을 선택하세요"
+            )
+            
+            # 새로고침 버튼
+            if st.button("🔄 새로고침", help="페이지를 새로고침합니다"):
+                st.rerun()
+            
+            # 파일 다운로드 버튼들
+            if file_format == "XLSX (Excel)" and hasattr(st.session_state, 'excel_buffer'):
+                st.download_button(
+                    label="📥 엑셀 파일 다운로드",
+                    data=st.session_state.excel_buffer,
+                    file_name=st.session_state.get('filename', 'youtube_data.xlsx'),
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    help="수집된 모든 데이터가 포함된 엑셀 파일을 다운로드합니다"
+                )
+            
+            elif file_format == "CSV":
+                if videos:
+                    videos_df = pd.DataFrame(videos)
+                    csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 영상 데이터 CSV",
+                        data=csv_videos,
+                        file_name="videos.csv",
+                        mime="text/csv",
+                        help="영상 데이터만 포함된 CSV 파일을 다운로드합니다"
                     )
-                    fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                
+                if comments:
+                    comments_df = pd.DataFrame(comments)
+                    csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 댓글 데이터 CSV",
+                        data=csv_comments,
+                        file_name="comments.csv",
+                        mime="text/csv",
+                        help="댓글 데이터만 포함된 CSV 파일을 다운로드합니다"
+                    )
+            
+            # 데이터 초기화 버튼
+            if st.button("🗑️ 데이터 초기화", help="수집된 데이터를 모두 삭제합니다"):
+                for key in ['videos', 'comments', 'excel_buffer', 'filename', 'crawling_completed']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
     
     # 데이터가 없을 때 안내 메시지
     else:
