@@ -4,7 +4,6 @@ import os
 import time
 from datetime import datetime, timedelta
 from youtube_crawler import YouTubeCrawler
-
 # plotly 대신 streamlit의 기본 차트 기능 사용
 PLOTLY_AVAILABLE = False
 
@@ -21,102 +20,120 @@ st.set_page_config(
     }
 )
 
-# Flat Modern CSS 스타일
+# 2025년 디자인 트렌드 CSS 스타일
 st.markdown("""
 <style>
-    /* 전체 페이지 스타일 - Flat Modern */
+    /* 전체 페이지 스타일 - 2025년 트렌드 */
     .main {
-        background: #f8fafc;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         padding: 0;
         min-height: 100vh;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #1a202c;
     }
     
-    /* 스크롤바 스타일 - Flat */
+    /* 스크롤바 스타일 - 미니멀 */
     ::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 3px;
+        background: transparent;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+        backdrop-filter: blur(10px);
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: rgba(0, 0, 0, 0.3);
     }
     
-    /* 헤더 스타일 - Flat Modern */
+    /* 헤더 스타일 - 2025년 트렌드 */
     .main-header {
-        font-size: 2.5rem;
-        font-weight: 600;
-        color: #1a202c;
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #1a202c 0%, #4a5568 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         text-align: center;
-        margin: 2rem 0;
-        letter-spacing: -0.025em;
+        margin: 3rem 0 2rem 0;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
     }
     
-    /* 카드 스타일 - Flat Modern */
+    /* 카드 스타일 - 글래스모피즘 */
     .metric-card {
-        background: #ffffff;
-        border-radius: 8px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
     
     .metric-card:hover {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.9);
     }
     
-    /* 버튼 스타일 - Flat Modern */
+    /* 버튼 스타일 - 네오모피즘 */
     .stButton > button {
-        background: #3182ce;
+        background: linear-gradient(145deg, #ffffff, #e6e6e6);
         border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        color: white;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        color: #1a202c;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.8);
         width: 100%;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
     }
     
     .stButton > button:hover {
-        background: #2c5aa0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 12px 12px 24px rgba(0, 0, 0, 0.15), -12px -12px 24px rgba(255, 255, 255, 0.9);
+        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
     }
     
-    /* 사이드바 스타일 - Flat Modern */
+    .stButton > button:active {
+        transform: translateY(0);
+        box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+    }
+    
+    /* 사이드바 스타일 - 글래스모피즘 */
     .css-1d391kg {
-        background: #ffffff;
-        border-right: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
         text-align: center;
     }
     
-    /* 입력 필드 스타일 - Flat Modern */
+    /* 입력 필드 스타일 - 2025년 트렌드 */
     .stTextInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stTextInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
     /* 크롤링 진행 과정 스타일 - 인터랙티브 */
@@ -330,185 +347,258 @@ st.markdown("""
     }
     }
     
-    /* 텍스트 영역 스타일 - Flat Modern */
+    /* 텍스트 영역 스타일 - 2025년 트렌드 */
     .stTextArea > div > div > textarea {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .stTextArea > div > div > textarea:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 숫자 입력 필드 스타일 - Flat Modern */
+    /* 숫자 입력 필드 스타일 - 2025년 트렌드 */
     .stNumberInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stNumberInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 날짜 입력 필드 스타일 - Flat Modern */
+    /* 날짜 입력 필드 스타일 - 2025년 트렌드 */
     .stDateInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stDateInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 체크박스 스타일 - Flat Modern */
+    /* 체크박스 스타일 - 2025년 트렌드 */
     .stCheckbox > div > div > div {
-        border-radius: 4px;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* 성공 메시지 - Flat Modern */
+    /* 성공 메시지 - 2025년 트렌드 */
     .success-message {
-        background: #c6f6d5;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #38a169;
-        font-weight: 500;
-    }
-    
-    /* 정보 메시지 - Flat Modern */
-    .info-message {
-        background: #bee3f8;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #3182ce;
-        font-weight: 500;
-    }
-    
-    /* 경고 메시지 - Flat Modern */
-    .warning-message {
-        background: #fed7d7;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #e53e3e;
-        font-weight: 500;
-    }
-    
-    /* 진행률 바 스타일 - Flat Modern */
-    .stProgress > div > div > div > div {
-        background: #3182ce;
-        border-radius: 4px;
-    }
-    
-    /* 탭 스타일 - Flat Modern */
-    .stTabs > div > div > div > div {
-        border-radius: 8px 8px 0 0;
-        border: 1px solid #e2e8f0;
-        background: #f7fafc;
-    }
-    }
-    
-    /* 데이터프레임 스타일 */
-    .dataframe {
+        background: rgba(56, 161, 105, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
         border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(56, 161, 105, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
     }
     
-    /* 애니메이션 */
+    /* 정보 메시지 - 2025년 트렌드 */
+    .info-message {
+        background: rgba(102, 126, 234, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 경고 메시지 - 2025년 트렌드 */
+    .warning-message {
+        background: rgba(229, 62, 62, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 62, 62, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 진행률 바 스타일 - 2025년 트렌드 */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* 탭 스타일 - 2025년 트렌드 */
+    .stTabs > div > div > div > div {
+        border-radius: 12px 12px 0 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 데이터프레임 스타일 - 2025년 트렌드 */
+    .dataframe {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+    }
+    
+    /* 애니메이션 - 2025년 트렌드 */
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { 
+            opacity: 0; 
+            transform: translateY(30px) scale(0.95); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0) scale(1); 
+        }
     }
     
     @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-30px); }
-        to { opacity: 1; transform: translateX(0); }
+        from { 
+            opacity: 0; 
+            transform: translateX(-40px) scale(0.95); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateX(0) scale(1); 
+        }
     }
     
     @keyframes pulse {
         0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
+        50% { transform: scale(1.02); }
         100% { transform: scale(1); }
     }
     
     .fade-in {
-        animation: fadeIn 0.6s ease-out;
+        animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .slide-in {
-        animation: slideIn 0.5s ease-out;
+        animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .pulse {
-        animation: pulse 2s infinite;
+        animation: pulse 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* 로딩 스피너 */
+    /* 로딩 스피너 - 2025년 트렌드 */
     .loading-spinner {
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(102, 126, 234, 0.2);
         border-radius: 50%;
-        border-top-color: #4ECDC4;
-        animation: spin 1s ease-in-out infinite;
+        border-top-color: #667eea;
+        animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
     
-    /* 반응형 디자인 */
+
+    
+    /* 반응형 디자인 - 2025년 트렌드 */
     @media (max-width: 768px) {
         .main-header {
+            font-size: 2.5rem;
+            margin: 2rem 0 1.5rem 0;
+        }
+        
+        .metric-card {
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        
+        .stButton > button {
+            padding: 0.875rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stDateInput > div > div > input {
+            padding: 0.875rem 1rem;
+            font-size: 0.95rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .main-header {
             font-size: 2rem;
+            margin: 1.5rem 0 1rem 0;
         }
         
         .metric-card {
             padding: 1rem;
+            border-radius: 10px;
+        }
+        
+        .stButton > button {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
         }
     }
 </style>
 """, unsafe_allow_html=True)
 
 def main():
-    # Flat Modern 헤더
+    # 2025년 트렌드 헤더
     st.markdown('<h1 class="main-header fade-in">유튜브 크롤러</h1>', unsafe_allow_html=True)
     
     # 서브타이틀
-    st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 2rem;">현대적인 유튜브 데이터 수집 및 분석 서비스</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #4a5568; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 400;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
+    
+    # 실시간 알림 표시
+    show_notifications()
+    
+    # 크롤링 진행 중 표시 (세션 상태 확인)
+    if hasattr(st.session_state, 'crawling_completed') and not st.session_state.crawling_completed:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0; text-align: center;">
+            <h3 style="margin: 0 0 0.5rem 0;">🔄 크롤링이 진행 중입니다</h3>
+            <p style="margin: 0; opacity: 0.9;">실제 크롤링 및 수집은 계속 진행중입니다. 페이지를 닫아도 백그라운드에서 작업이 계속됩니다.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
     with st.container():
         # 상단 설정 영역
-        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">⚙️ 크롤링 설정</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">크롤링 설정</h2>', unsafe_allow_html=True)
         
         # 설정을 3개 컬럼으로 배치
         col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">🔍 검색 설정</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">검색 설정</h3>', unsafe_allow_html=True)
             
             # 키워드 개수 선택
             keyword_count = st.selectbox(
@@ -535,7 +625,7 @@ def main():
                 st.stop()
         
         with col2:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📊 수집 설정</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">수집 설정</h3>', unsafe_allow_html=True)
             
             videos_per_keyword = st.number_input(
                 "키워드당 영상 수",
@@ -561,7 +651,7 @@ def main():
                 comments_per_video = 0
         
         with col3:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📅 날짜 & 파일</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">날짜 & 파일</h3>', unsafe_allow_html=True)
             
             # 날짜 필터링 설정
             use_date_filter = st.checkbox(
@@ -589,8 +679,29 @@ def main():
             filename = st.text_input(
                 "출력 파일명",
                 value="youtube_data.xlsx",
-                help="출력할 엑셀 파일의 이름"
+                help="저장할 엑셀 파일명 (확장자 포함)"
             )
+            
+            # 고급 설정
+            with st.expander("고급 설정"):
+                enable_keyword_analysis = st.checkbox(
+                    "키워드 분석",
+                    value=True,
+                    help="댓글에서 키워드 및 감정 분석 수행"
+                )
+                
+                excel_encoding = st.selectbox(
+                    "엑셀 인코딩",
+                    options=['utf-8-sig', 'utf-8', 'cp949'],
+                    index=0,
+                    help="엑셀 파일 저장 시 사용할 인코딩"
+                )
+                
+                max_workers = st.slider(
+                    "동시 처리 수",
+                    min_value=1, max_value=8, value=4,
+                    help="동시에 처리할 작업의 수"
+                )
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
     
@@ -600,20 +711,19 @@ def main():
     # 크롤링 실행 버튼 (중앙 배치)
     st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
     if st.button("🎯 크롤링 시작", type="primary", use_container_width=False, help="설정된 조건으로 크롤링을 시작합니다"):
+        # 크롤링 시작 시 세션 상태 초기화
+        st.session_state.crawling_completed = False
+        st.session_state.crawling_logs = []
+        
         if not keywords:
             st.error("❌ 키워드를 입력해주세요.")
             st.stop()
         
-        # 인터랙티브 크롤링 진행 과정 UI
-        st.markdown("""
-        <div class="crawling-progress">
-            <h3 style="color: white; text-align: center; margin-bottom: 1.5rem;">🚀 크롤링 진행 과정</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
         # 진행 상황 표시
         progress_bar = st.progress(0)
-        status_text = st.empty()
+        
+        # 실시간 로그 표시 영역
+        log_container = st.container()
         
         # 크롤링 상태 표시 컨테이너
         status_container = st.container()
@@ -621,36 +731,75 @@ def main():
         # 실시간 통계 컨테이너
         stats_container = st.container()
         
+        # 진행 단계별 상태 표시
+        step_container = st.container()
+        
+        # 실시간 로그 메시지 저장
+        if 'crawling_logs' not in st.session_state:
+            st.session_state.crawling_logs = []
+        
+        def add_log(message, log_type="info"):
+            """로그 메시지 추가"""
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            log_entry = {
+                'timestamp': timestamp,
+                'message': message,
+                'type': log_type
+            }
+            st.session_state.crawling_logs.append(log_entry)
+            
+            # 최근 20개 로그만 유지
+            if len(st.session_state.crawling_logs) > 20:
+                st.session_state.crawling_logs = st.session_state.crawling_logs[-20:]
+        
         # 크롤러 실행
         crawler = None
         try:
+            # 단계 1: 크롤러 초기화
+            with step_container:
+                st.markdown('<div style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea;">', unsafe_allow_html=True)
+                st.markdown("🔬 **1단계: 크롤러 초기화 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
-                with st.spinner("🔄 크롤러를 초기화하고 있습니다..."):
+                with st.spinner("🔬 크롤러를 초기화하고 있습니다..."):
+                    add_log("🔬 크롤러 초기화 시작", "info")
+                    
+                    # 설정 적용
+                    config = {
+                        'max_workers': max_workers,
+                        'enable_keyword_analysis': enable_keyword_analysis,
+                        'excel_encoding': excel_encoding,
+                        'max_comments_per_video': comments_per_video if collect_comments else 0
+                    }
+                    
                     crawler = YouTubeCrawler()
+                    crawler.update_config(config)
+                    
+                    add_log("✅ 크롤러 초기화 완료", "success")
                     st.success("✅ 크롤러 초기화 완료")
             
-            # 영상 검색
+            progress_bar.progress(0.1)
+            
+            # 단계 2: 영상 검색
+            with step_container:
+                st.markdown('<div style="background: rgba(56, 161, 105, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #38a169;">', unsafe_allow_html=True)
+                st.markdown("🔍 **2단계: 영상 검색 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
+                add_log("🔍 영상 검색 시작", "info")
                 st.info("🔍 영상을 검색하고 있습니다...")
             
             videos = []
             
             for i, keyword in enumerate(keywords):
-                progress = (i / len(keywords)) * 0.5  # 50%까지
+                progress = 0.1 + (i / len(keywords)) * 0.4  # 10%~50%
                 progress_bar.progress(progress)
                 
                 # 인터랙티브 진행 단계 표시
                 with status_container:
-                    st.markdown(f"""
-                    <div class="progress-step active">
-                        <div class="step-icon active">🔍</div>
-                        <div class="step-content">
-                            <div class="step-title">키워드 검색 중</div>
-                            <div class="step-description">'{keyword}' 검색 중... ({i+1}/{len(keywords)})</div>
-                            <div class="step-details">진행률: {int(progress * 100)}%</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.info(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})")
                 
                 # 날짜 필터링 적용
                 start_dt = datetime.combine(start_date, datetime.min.time()) if start_date else None
@@ -682,25 +831,23 @@ def main():
                         """, unsafe_allow_html=True)
                 
                 with status_container:
-                    st.markdown(f"""
-                    <div class="status-message success">
-                        ✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.success(f"✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견")
             
             if not videos:
+                add_log("❌ 검색된 영상이 없습니다.", "error")
                 st.error("❌ 검색된 영상이 없습니다.")
                 return
             
-            # 댓글 수집
+            # 단계 3: 댓글 수집 (선택사항)
             all_comments = []
             if collect_comments and videos:
+                with step_container:
+                    st.markdown('<div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">', unsafe_allow_html=True)
+                    st.markdown("💬 **3단계: 댓글 수집 중...**", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
                 with status_container:
-                    st.markdown("""
-                    <div class="status-message info">
-                        💬 댓글 수집을 시작합니다...
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.info("💬 댓글을 수집하고 있습니다...")
                 
                 for i, video in enumerate(videos):
                     progress = 0.5 + (i / len(videos)) * 0.4  # 50%~90%
@@ -708,16 +855,7 @@ def main():
                     
                     # 인터랙티브 댓글 수집 진행 단계
                     with status_container:
-                        st.markdown(f"""
-                        <div class="progress-step active">
-                            <div class="step-icon active">💬</div>
-                            <div class="step-content">
-                                <div class="step-title">댓글 수집 중</div>
-                                <div class="step-description">({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...</div>
-                                <div class="step-details">진행률: {int(progress * 100)}%</div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.info(f"💬 댓글 수집 중... ({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...")
                     
                     if video.get('video_id'):
                         try:
@@ -751,96 +889,52 @@ def main():
                                 latest_time = comments[0].get('comment_time', 'N/A') if comments else 'N/A'
                                 top_likes = max([comment.get('like_count', 0) for comment in comments])
                                 with status_container:
-                                    st.markdown(f"""
-                                    <div class="status-message success">
-                                        ✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                    st.success(f"✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})")
                             else:
                                 with status_container:
-                                    st.markdown("""
-                                    <div class="status-message warning">
-                                        ⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                    st.warning("⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다")
                         except Exception as comment_error:
                             error_msg = str(comment_error)
                             with status_container:
-                                st.markdown(f"""
-                                <div class="status-message error">
-                                    ❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)
-                                </div>
-                                """, unsafe_allow_html=True)
+                                st.error(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)")
                             
                             # ChromeDriver 재연결 시도
                             if "connection" in error_msg.lower() or "webdriver" in error_msg.lower():
                                 try:
                                     with status_container:
+                                        add_log("🔄 ChromeDriver 재연결 시도 중...", "info")
                                         st.info("🔄 ChromeDriver 재연결 시도 중...")
                                     crawler.close()
                                     time.sleep(2)
                                     crawler = YouTubeCrawler()
+                                    crawler.update_config(config)
                                     with status_container:
+                                        add_log("✅ ChromeDriver 재연결 성공", "success")
                                         st.success("✅ ChromeDriver 재연결 성공")
                                 except Exception as reconnect_error:
                                     with status_container:
+                                        add_log(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}", "error")
                                         st.error(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}")
                                     break
             
-            # 엑셀 저장
+            # 단계 4: 데이터 저장
+            with step_container:
+                st.markdown('<div style="background: rgba(236, 72, 153, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #ec4899;">', unsafe_allow_html=True)
+                st.markdown("💾 **4단계: 데이터 저장 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
+                add_log("💾 데이터 저장 시작", "info")
                 st.info("💾 데이터를 저장하고 있습니다...")
             progress_bar.progress(0.95)
             
-            # Streamlit Cloud 환경에서 직접 엑셀 생성
-            try:
-                import io
-                from openpyxl import Workbook
-                from openpyxl.utils.dataframe import dataframe_to_rows
-                
-                # 메모리에서 엑셀 파일 생성
-                wb = Workbook()
-                
-                # 영상 정보 시트
-                if videos:
-                    ws_videos = wb.active
-                    ws_videos.title = "Videos"
-                    
-                    # 헤더 추가
-                    if videos:
-                        headers = list(videos[0].keys())
-                        for col, header in enumerate(headers, 1):
-                            ws_videos.cell(row=1, column=col, value=header)
-                        
-                        # 데이터 추가
-                        for row, video in enumerate(videos, 2):
-                            for col, header in enumerate(headers, 1):
-                                ws_videos.cell(row=row, column=col, value=str(video.get(header, '')))
-                
-                # 댓글 정보 시트
-                if all_comments:
-                    ws_comments = wb.create_sheet("Comments")
-                    
-                    # 헤더 추가
-                    if all_comments:
-                        headers = list(all_comments[0].keys())
-                        for col, header in enumerate(headers, 1):
-                            ws_comments.cell(row=1, column=col, value=header)
-                        
-                        # 데이터 추가
-                        for row, comment in enumerate(all_comments, 2):
-                            for col, header in enumerate(headers, 1):
-                                ws_comments.cell(row=row, column=col, value=str(comment.get(header, '')))
-                
-                # 메모리에 엑셀 파일 저장
-                excel_buffer = io.BytesIO()
-                wb.save(excel_buffer)
-                excel_buffer.seek(0)
-                
-                progress_bar.progress(1.0)
-                with status_container:
-                    st.success("✅ 크롤링 완료!")
-                
+            saved_file = crawler.save_to_excel(videos, all_comments, filename)
+            
+            progress_bar.progress(1.0)
+            with status_container:
+                st.success("✅ 크롤링 완료!")
+            
+            if saved_file:
                 st.success(f"🎉 크롤링이 완료되었습니다!")
                 
                 # 다운로드 버튼
@@ -902,8 +996,12 @@ def main():
                 st.session_state.start_date = start_date
                 st.session_state.end_date = end_date
                 
+                # 크롤링 완료 상태 저장
+                st.session_state.crawling_completed = True
+                
         except Exception as e:
             error_msg = str(e)
+            add_log(f"❌ 크롤링 중 오류 발생: {error_msg[:100]}...", "error")
             
             # ChromeDriver 관련 오류인지 확인
             if "chromedriver" in error_msg.lower() or "webdriver" in error_msg.lower():
@@ -1082,14 +1180,26 @@ def main():
                 for i, (channel, count) in enumerate(top_channels, 1):
                     st.write(f"{i}. {channel}: {count}개")
                 
-                # 키워드별 평균 조회수 (추정)
-                st.subheader("📊 키워드별 인기도")
-                keyword_views = {}
+                # 키워드별 인지도 분석 (개선된 버전)
+                st.subheader("📊 키워드별 인지도")
+                
+                # 키워드별 통계 데이터 수집
+                keyword_stats = {}
                 for video in videos:
                     keyword = video.get('keyword', 'Unknown')
                     view_text = video.get('view_count', '0')
+                    formatted_date = video.get('formatted_upload_date', 'N/A')
                     
-                    # 조회수 텍스트를 숫자로 변환
+                    if keyword not in keyword_stats:
+                        keyword_stats[keyword] = {
+                            'total_views': 0,
+                            'video_count': 0,
+                            'avg_views': 0,
+                            'recent_videos': 0,  # 최근 30일 내 영상
+                            'view_data': []
+                        }
+                    
+                    # 조회수 변환
                     try:
                         if 'M' in view_text:
                             views = float(view_text.replace('M', '')) * 1000000
@@ -1098,25 +1208,34 @@ def main():
                         else:
                             views = float(view_text.replace(',', ''))
                         
-                        if keyword not in keyword_views:
-                            keyword_views[keyword] = []
-                        keyword_views[keyword].append(views)
+                        keyword_stats[keyword]['total_views'] += views
+                        keyword_stats[keyword]['video_count'] += 1
+                        keyword_stats[keyword]['view_data'].append(views)
+                        
+                        # 최근 영상 체크 (발행일이 있는 경우)
+                        if formatted_date != 'N/A':
+                            try:
+                                video_date = datetime.strptime(formatted_date, '%Y.%m.%d')
+                                days_diff = (datetime.now() - video_date).days
+                                if days_diff <= 30:
+                                    keyword_stats[keyword]['recent_videos'] += 1
+                            except:
+                                pass
+                                
                     except:
                         continue
                 
                 if keyword_views:
                     avg_views = {k: sum(v)/len(v) for k, v in keyword_views.items()}
-                    # Streamlit 기본 차트 사용
-                    views_data = pd.DataFrame({
-                        '키워드': list(avg_views.keys()),
-                        '평균 조회수': list(avg_views.values())
-                    })
-                    st.bar_chart(views_data.set_index('키워드'))
-                    
-                    # 상세 정보도 표시
-                    st.write("**상세 정보:**")
-                    for keyword, avg_view in avg_views.items():
-                        st.write(f"- {keyword}: {avg_view:,.0f}회")
+                    fig = px.bar(
+                        x=list(avg_views.keys()),
+                        y=list(avg_views.values()),
+                        title="키워드별 평균 조회수",
+                        color=list(avg_views.values()),
+                        color_continuous_scale='inferno'
+                    )
+                    fig.update_layout(height=300)
+                    st.plotly_chart(fig, use_container_width=True)
     
     # 데이터가 없을 때 안내 메시지
     else:

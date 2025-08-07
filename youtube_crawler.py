@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 # beautifulsoup4는 현재 사용되지 않으므로 제거
 import pandas as pd
@@ -23,15 +24,41 @@ import hashlib
 from functools import lru_cache
 from dotenv import load_dotenv
 import logging
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 import gc
+import random
+from collections import defaultdict
+import numpy as np
 
-# 로깅 설정
+# 선택적 임포트 - 설치되지 않은 경우 대체 로직 사용
+textblob_available = False
+jieba_available = False
+konlpy_available = False
+
+try:
+    from textblob import TextBlob
+    textblob_available = True
+except ImportError:
+    pass
+
+try:
+    import jieba
+    jieba_available = True
+except ImportError:
+    pass
+
+try:
+    from konlpy.tag import Okt
+    konlpy_available = True
+except ImportError:
+    pass
+
+# 로깅 설정 강화
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('youtube_crawler.log'),
+        logging.FileHandler('youtube_crawler.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -39,35 +66,77 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+class RetryManager:
+    """재시도 관리 클래스"""
+    
+    def __init__(self, max_retries: int = 3, base_delay: float = 1.0):
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+        
+    def execute_with_retry(self, func, *args, **kwargs):
+        """함수를 재시도 로직과 함께 실행"""
+        last_exception = None
+        
+        for attempt in range(self.max_retries + 1):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    delay = self.base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"시도 {attempt + 1} 실패: {e}. {delay:.2f}초 후 재시도...")
+                    time.sleep(delay)
+                else:
+                    logger.error(f"최대 재시도 횟수 초과: {e}")
+                    
+        raise last_exception
+
 class CacheManager:
-    """캐시 관리 클래스"""
+    """캐시 관리 클래스 - 성능 개선"""
     
     def __init__(self, cache_dir="cache"):
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
+        self._memory_cache = {}
+        self._cache_stats = {'hits': 0, 'misses': 0}
         
     def _get_cache_key(self, data: str) -> str:
         """캐시 키 생성"""
         return hashlib.md5(data.encode()).hexdigest()
     
     def get(self, key: str) -> Optional[Any]:
-        """캐시에서 데이터 가져오기"""
+        """캐시에서 데이터 가져오기 - 메모리 캐시 우선"""
+        # 메모리 캐시 확인
+        if key in self._memory_cache:
+            self._cache_stats['hits'] += 1
+            return self._memory_cache[key]
+            
         try:
             cache_file = os.path.join(self.cache_dir, f"{key}.pkl")
             if os.path.exists(cache_file):
-                # 캐시 만료 시간 체크 (24시간)
-                if time.time() - os.path.getmtime(cache_file) < 86400:
+                # 캐시 만료 시간 체크 (12시간으로 단축)
+                if time.time() - os.path.getmtime(cache_file) < 43200:
                     with open(cache_file, 'rb') as f:
-                        return pickle.load(f)
+                        data = pickle.load(f)
+                        # 메모리 캐시에 저장
+                        self._memory_cache[key] = data
+                        self._cache_stats['hits'] += 1
+                        return data
                 else:
                     os.remove(cache_file)  # 만료된 캐시 삭제
         except Exception as e:
             logger.warning(f"캐시 읽기 오류: {e}")
+            
+        self._cache_stats['misses'] += 1
         return None
     
     def set(self, key: str, data: Any):
-        """캐시에 데이터 저장"""
+        """캐시에 데이터 저장 - 메모리와 파일 모두"""
         try:
+            # 메모리 캐시에 저장
+            self._memory_cache[key] = data
+            
+            # 파일 캐시에 저장
             cache_file = os.path.join(self.cache_dir, f"{key}.pkl")
             with open(cache_file, 'wb') as f:
                 pickle.dump(data, f)
@@ -77,26 +146,42 @@ class CacheManager:
     def clear(self):
         """캐시 전체 삭제"""
         try:
+            self._memory_cache.clear()
             for file in os.listdir(self.cache_dir):
                 if file.endswith('.pkl'):
                     os.remove(os.path.join(self.cache_dir, file))
             logger.info("캐시가 삭제되었습니다.")
         except Exception as e:
             logger.error(f"캐시 삭제 오류: {e}")
+    
+    def get_stats(self) -> Dict:
+        """캐시 통계 반환"""
+        total = self._cache_stats['hits'] + self._cache_stats['misses']
+        hit_rate = (self._cache_stats['hits'] / total * 100) if total > 0 else 0
+        return {
+            'hits': self._cache_stats['hits'],
+            'misses': self._cache_stats['misses'],
+            'hit_rate': f"{hit_rate:.1f}%",
+            'memory_cache_size': len(self._memory_cache)
+        }
 
 class ConfigManager:
-    """설정 관리 클래스"""
+    """설정 관리 클래스 - 성능 최적화"""
     
     def __init__(self):
         self.config = {
-            'max_workers': int(os.getenv('MAX_WORKERS', '4')),
+            'max_workers': int(os.getenv('MAX_WORKERS', '6')),  # 워커 수 증가
             'timeout': int(os.getenv('TIMEOUT', '30')),
             'retry_count': int(os.getenv('RETRY_COUNT', '3')),
             'cache_enabled': os.getenv('CACHE_ENABLED', 'true').lower() == 'true',
             'headless': os.getenv('HEADLESS', 'true').lower() == 'true',
-            'scroll_count': int(os.getenv('SCROLL_COUNT', '5')),
-            'wait_time': float(os.getenv('WAIT_TIME', '2.0')),
-            'max_memory_mb': int(os.getenv('MAX_MEMORY_MB', '2048')),
+            'scroll_count': int(os.getenv('SCROLL_COUNT', '3')),  # 스크롤 수 감소로 속도 향상
+            'wait_time': float(os.getenv('WAIT_TIME', '1.5')),  # 대기 시간 단축
+            'max_memory_mb': int(os.getenv('MAX_MEMORY_MB', '4096')),  # 메모리 증가
+            'comment_batch_size': int(os.getenv('COMMENT_BATCH_SIZE', '20')),  # 댓글 배치 크기
+            'enable_keyword_analysis': os.getenv('ENABLE_KEYWORD_ANALYSIS', 'true').lower() == 'true',
+            'max_comments_per_video': int(os.getenv('MAX_COMMENTS_PER_VIDEO', '100')),
+            'excel_encoding': os.getenv('EXCEL_ENCODING', 'utf-8-sig'),  # 엑셀 인코딩 설정
         }
     
     def get(self, key: str, default=None):
@@ -112,28 +197,54 @@ class ConfigManager:
         self.config.update(new_config)
 
 class PerformanceMonitor:
-    """성능 모니터링 클래스"""
+    """성능 모니터링 클래스 - 강화된 버전"""
     
     def __init__(self):
-        self.start_time = None
-        self.metrics = {}
+        self.timers = {}
+        self.memory_usage = []
+        self.start_time = time.time()
+        self.operation_counts = defaultdict(int)
+        self.error_counts = defaultdict(int)
         
     def start_timer(self, name: str):
         """타이머 시작"""
-        self.start_time = time.time()
-        self.metrics[name] = {'start': self.start_time}
-        
+        self.timers[name] = time.time()
+        self.operation_counts[name] += 1
+    
     def end_timer(self, name: str):
-        """타이머 종료"""
-        if name in self.metrics and self.start_time:
-            duration = time.time() - self.start_time
-            self.metrics[name]['duration'] = duration
-            self.metrics[name]['end'] = time.time()
-            logger.info(f"{name} 완료 - 소요시간: {duration:.2f}초")
-            
+        """타이머 종료 및 시간 반환"""
+        if name in self.timers:
+            elapsed = time.time() - self.timers[name]
+            logger.info(f"{name} 실행 시간: {elapsed:.2f}초")
+            return elapsed
+        return 0
+    
+    def log_error(self, operation: str, error: Exception):
+        """에러 로깅"""
+        self.error_counts[operation] += 1
+        logger.error(f"{operation} 에러: {error}")
+    
     def get_metrics(self) -> Dict:
-        """메트릭 반환"""
-        return self.metrics
+        """성능 메트릭 반환"""
+        total_time = time.time() - self.start_time
+        return {
+            'total_time': total_time,
+            'timers': self.timers.copy(),
+            'memory_usage': self.memory_usage,
+            'operation_counts': dict(self.operation_counts),
+            'error_counts': dict(self.error_counts),
+            'success_rate': self._calculate_success_rate()
+        }
+    
+    def _calculate_success_rate(self) -> Dict:
+        """성공률 계산"""
+        rates = {}
+        for operation in self.operation_counts:
+            total = self.operation_counts[operation]
+            errors = self.error_counts.get(operation, 0)
+            success_rate = ((total - errors) / total * 100) if total > 0 else 100
+            rates[operation] = f"{success_rate:.1f}%"
+        return rates
     
     def log_memory_usage(self):
         """메모리 사용량 로깅"""
@@ -142,9 +253,87 @@ class PerformanceMonitor:
             process = psutil.Process()
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
-            logger.info(f"메모리 사용량: {memory_mb:.2f} MB")
-            return memory_mb
+            self.memory_usage.append({
+                'timestamp': time.time(),
+                'memory_mb': memory_mb
+            })
+            logger.info(f"메모리 사용량: {memory_mb:.1f}MB")
         except ImportError:
+            logger.warning("psutil이 설치되지 않아 메모리 모니터링을 사용할 수 없습니다.")
+
+class KeywordAnalyzer:
+    """키워드 분석 클래스"""
+    
+    def __init__(self):
+        self.okt = Okt()
+        self.stop_words = self._load_stop_words()
+        
+    def _load_stop_words(self) -> set:
+        """한국어 불용어 로드"""
+        stop_words = {
+            '이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만', '그런데',
+            '그러나', '그래서', '그런', '이런', '저런', '어떤', '무슨', '어떻게', '왜',
+            '언제', '어디서', '누가', '무엇을', '어떤', '이것', '저것', '그것', '우리',
+            '저희', '그들', '당신', '너희', '그녀', '그분', '이분', '저분', '이런',
+            '저런', '그런', '어떤', '무슨', '어떻게', '왜', '언제', '어디서', '누가',
+            '무엇을', '어떤', '이것', '저것', '그것', '우리', '저희', '그들', '당신',
+            '너희', '그녀', '그분', '이분', '저분'
+        }
+        return stop_words
+    
+    def analyze_keywords(self, texts: List[str], top_n: int = 20) -> Dict:
+        """텍스트에서 키워드 분석"""
+        if not texts:
+            return {}
+            
+        # 모든 텍스트 결합
+        combined_text = ' '.join(texts)
+        
+        # 형태소 분석
+        try:
+            nouns = self.okt.nouns(combined_text)
+            # 불용어 제거 및 길이 필터링
+            filtered_nouns = [word for word in nouns if len(word) > 1 and word not in self.stop_words]
+            
+            # 빈도수 계산
+            word_freq = defaultdict(int)
+            for word in filtered_nouns:
+                word_freq[word] += 1
+            
+            # 상위 키워드 추출
+            top_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:top_n]
+            
+            # 감정 분석 (간단한 버전)
+            sentiment_scores = []
+            for text in texts[:10]:  # 처음 10개 텍스트만 분석
+                try:
+                    blob = TextBlob(text)
+                    sentiment_scores.append(blob.sentiment.polarity)
+                except:
+                    sentiment_scores.append(0)
+            
+            avg_sentiment = np.mean(sentiment_scores) if sentiment_scores else 0
+            
+            return {
+                'top_keywords': dict(top_keywords),
+                'total_words': len(filtered_nouns),
+                'unique_words': len(word_freq),
+                'sentiment_score': avg_sentiment,
+                'sentiment_label': self._get_sentiment_label(avg_sentiment)
+            }
+            
+        except Exception as e:
+            logger.error(f"키워드 분석 오류: {e}")
+            return {}
+    
+    def _get_sentiment_label(self, score: float) -> str:
+        """감정 점수를 라벨로 변환"""
+        if score > 0.1:
+            return "긍정적"
+        elif score < -0.1:
+            return "부정적"
+        else:
+            return "중립적"
             logger.warning("psutil이 설치되지 않아 메모리 사용량을 확인할 수 없습니다.")
             return 0
 
@@ -164,14 +353,27 @@ class YouTubeCrawler:
         self.setup_driver()
         
     def send_notification(self, title, message):
-        """macOS 시스템 알림 전송"""
+        """Streamlit 웹 알림 전송"""
         try:
-            subprocess.run([
-                'osascript', '-e',
-                f'display notification "{message}" with title "{title}"'
-            ], check=True)
+            # Streamlit 세션 상태에 알림 정보 저장
+            if hasattr(self, 'st_session_state'):
+                if 'notifications' not in self.st_session_state:
+                    self.st_session_state.notifications = []
+                
+                notification = {
+                    'title': title,
+                    'message': message,
+                    'timestamp': datetime.now().strftime('%H:%M:%S')
+                }
+                self.st_session_state.notifications.append(notification)
+                
+                # 최대 10개 알림만 유지
+                if len(self.st_session_state.notifications) > 10:
+                    self.st_session_state.notifications = self.st_session_state.notifications[-10:]
+                    
+            logger.info(f"웹 알림 전송: {title} - {message}")
         except Exception as e:
-            logger.error(f"알림 전송 실패: {e}")
+            logger.error(f"웹 알림 전송 실패: {e}")
         
     def setup_driver(self):
         """Chrome 드라이버 설정 - 최적화됨"""
@@ -515,12 +717,17 @@ class YouTubeCrawler:
             # 영상 ID 추출
             video_id = self._extract_video_id(video_url)
             
+            # 발행일 파싱 및 포맷팅
+            parsed_date = self._parse_upload_time(upload_time)
+            formatted_date = parsed_date.strftime('%Y.%m.%d') if parsed_date else 'N/A'
+            
             return {
                 'keyword': keyword,
                 'title': title,
                 'channel_name': channel_name,
                 'view_count': view_count,
                 'upload_time': upload_time,
+                'formatted_upload_date': formatted_date,
                 'video_url': video_url,
                 'video_id': video_id,
                 'crawled_at': datetime.now().isoformat()
@@ -544,7 +751,10 @@ class YouTubeCrawler:
         return None
     
     def _parse_upload_time(self, time_text):
-        """업로드 시간 텍스트를 datetime 객체로 변환"""
+        """업로드 시간 텍스트를 datetime 객체로 변환 - 강화된 버전"""
+        if not time_text or time_text == "N/A":
+            return None
+            
         try:
             now = datetime.now()
             
@@ -572,15 +782,27 @@ class YouTubeCrawler:
                 years = int(re.findall(r'(\d+)', time_text)[0])
                 return now - timedelta(days=years * 365)
             else:
-                # 구체적인 날짜 형식 (예: 2024. 1. 15.)
-                date_match = re.search(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', time_text)
-                if date_match:
-                    year, month, day = map(int, date_match.groups())
-                    return datetime(year, month, day)
+                # 다양한 날짜 형식 파싱
+                date_patterns = [
+                    r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})',  # 2024. 1. 15.
+                    r'(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일',  # 2024년 1월 15일
+                    r'(\d{4})-(\d{1,2})-(\d{1,2})',  # 2024-01-15
+                    r'(\d{4})/(\d{1,2})/(\d{1,2})',  # 2024/01/15
+                ]
+                
+                for pattern in date_patterns:
+                    date_match = re.search(pattern, time_text)
+                    if date_match:
+                        year, month, day = map(int, date_match.groups())
+                        return datetime(year, month, day)
+                        
+                # 마지막 시도: 현재 시간 반환
+                logger.warning(f"알 수 없는 시간 형식: {time_text}")
+                return now
+                
         except Exception as e:
-            logger.warning(f"날짜 파싱 오류: {e}")
-        
-        return None
+            logger.warning(f"날짜 파싱 오류: {time_text} - {e}")
+            return None
     
     def _is_video_in_date_range(self, video_info, start_date: Optional[datetime], end_date: Optional[datetime]) -> bool:
         """영상이 지정된 날짜 범위에 있는지 확인"""
@@ -844,9 +1066,13 @@ class YouTubeCrawler:
             # 댓글 시간 추출
             comment_time = self._extract_comment_time(element)
             
+            # 댓글에서 키워드 추출 (최대 5개)
+            extracted_keywords = self._extract_comment_keywords(comment_text, max_keywords=5)
+            
             return {
                 'video_id': video_id,
                 'comment': comment_text,
+                'extracted_keywords': extracted_keywords,
                 'like_count': like_count,
                 'reply_count': reply_count,
                 'comment_time': comment_time,
@@ -892,6 +1118,42 @@ class YouTubeCrawler:
             time_element = element.find_element(By.CSS_SELECTOR, "#header-author #published-time-text")
             return time_element.text.strip()
         except:
+            return ""
+    
+    def _extract_comment_keywords(self, comment_text: str, max_keywords: int = 5) -> str:
+        """댓글에서 키워드 추출 (최대 5개, 콤마로 구분)"""
+        try:
+            if not comment_text or len(comment_text) < 3:
+                return ""
+            
+            # 간단한 키워드 추출 (한글 명사, 영어 단어)
+            keywords = []
+            
+            # 한글 명사 추출 (간단한 패턴 매칭)
+            korean_nouns = re.findall(r'[가-힣]{2,}', comment_text)
+            # 영어 단어 추출 (2글자 이상)
+            english_words = re.findall(r'\b[a-zA-Z]{2,}\b', comment_text)
+            
+            # 한글 명사와 영어 단어 결합
+            all_words = korean_nouns + english_words
+            
+            # 빈도수 계산
+            word_freq = {}
+            for word in all_words:
+                if len(word) >= 2:  # 2글자 이상만
+                    word_freq[word] = word_freq.get(word, 0) + 1
+            
+            # 빈도수 순으로 정렬하여 상위 키워드 선택
+            sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+            
+            # 최대 5개까지 선택
+            selected_keywords = [word for word, freq in sorted_words[:max_keywords]]
+            
+            # 콤마로 구분하여 반환
+            return ", ".join(selected_keywords) if selected_keywords else ""
+            
+        except Exception as e:
+            logger.warning(f"댓글 키워드 추출 오류: {e}")
             return ""
     
     def _sort_and_select_comments(self, comment_data: List[Dict], max_comments: int) -> List[Dict]:
@@ -1107,22 +1369,64 @@ class YouTubeCrawler:
         return asyncio.run(self.save_to_excel_async(videos, comments, filename))
     
     def _save_to_excel_sync(self, videos: List[Dict], comments: List[Dict], filename: str) -> Optional[str]:
-        """동기 엑셀 저장 구현"""
+        """동기 엑셀 저장 구현 - 강화된 버전"""
         try:
             # 저장 시작 알림
             self.send_notification("유튜브 크롤러", f"데이터 저장 시작 - {filename}")
             
+            # 인코딩 설정 가져오기
+            encoding = self.config.get('excel_encoding', 'utf-8-sig')
+            
             with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-                # 영상 정보 저장
+                # 영상 정보 저장 - 발행일 정보 추가
                 videos_df = pd.DataFrame(videos)
+                
+                # 발행일 정보가 이미 포함되어 있으므로 추가 처리 불필요
+                # formatted_upload_date 필드가 이미 YYYY.MM.DD 형식으로 포함됨
+                
                 videos_df.to_excel(writer, sheet_name='Videos', index=False)
                 
                 # 댓글 정보 저장
                 if comments:
                     comments_df = pd.DataFrame(comments)
                     comments_df.to_excel(writer, sheet_name='Comments', index=False)
+                
+                # 키워드 분석 결과 저장 (활성화된 경우)
+                if self.config.get('enable_keyword_analysis', True) and comments:
+                    try:
+                        analyzer = KeywordAnalyzer()
+                        comment_texts = [comment.get('comment_text', '') for comment in comments if comment.get('comment_text')]
+                        
+                        if comment_texts:
+                            keyword_analysis = analyzer.analyze_keywords(comment_texts)
+                            
+                            # 키워드 분석 결과를 데이터프레임으로 변환
+                            if keyword_analysis.get('top_keywords'):
+                                keywords_df = pd.DataFrame([
+                                    {'keyword': k, 'frequency': v} 
+                                    for k, v in keyword_analysis['top_keywords'].items()
+                                ])
+                                keywords_df.to_excel(writer, sheet_name='Keyword_Analysis', index=False)
+                            
+                            # 감정 분석 결과 저장
+                            sentiment_df = pd.DataFrame([{
+                                'sentiment_score': keyword_analysis.get('sentiment_score', 0),
+                                'sentiment_label': keyword_analysis.get('sentiment_label', 'N/A'),
+                                'total_words': keyword_analysis.get('total_words', 0),
+                                'unique_words': keyword_analysis.get('unique_words', 0)
+                            }])
+                            sentiment_df.to_excel(writer, sheet_name='Sentiment_Analysis', index=False)
+                            
+                    except Exception as e:
+                        logger.warning(f"키워드 분석 저장 오류: {e}")
+                
+                # 성능 메트릭 저장
+                metrics = self.get_performance_metrics()
+                if metrics:
+                    metrics_df = pd.DataFrame([metrics])
+                    metrics_df.to_excel(writer, sheet_name='Performance_Metrics', index=False)
                     
-            logger.info(f"데이터가 {filename}에 저장되었습니다.")
+            logger.info(f"데이터가 {filename}에 저장되었습니다. (인코딩: {encoding})")
             
             # 저장 완료 알림
             self.send_notification("유튜브 크롤러", f"데이터 저장 완료! {len(videos)}개 영상, {len(comments)}개 댓글")
