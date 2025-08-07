@@ -38,299 +38,374 @@ st.set_page_config(
     }
 )
 
-# Flat Modern CSS 스타일
+# 2025년 디자인 트렌드 CSS 스타일
 st.markdown("""
 <style>
-    /* 전체 페이지 스타일 - Flat Modern */
+    /* 전체 페이지 스타일 - 2025년 트렌드 */
     .main {
-        background: #f8fafc;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         padding: 0;
         min-height: 100vh;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #1a202c;
     }
     
-    /* 스크롤바 스타일 - Flat */
+    /* 스크롤바 스타일 - 미니멀 */
     ::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 3px;
+        background: transparent;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+        backdrop-filter: blur(10px);
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: rgba(0, 0, 0, 0.3);
     }
     
-    /* 헤더 스타일 - Flat Modern */
+    /* 헤더 스타일 - 2025년 트렌드 */
     .main-header {
-        font-size: 2.5rem;
-        font-weight: 600;
-        color: #1a202c;
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #1a202c 0%, #4a5568 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         text-align: center;
-        margin: 2rem 0;
-        letter-spacing: -0.025em;
+        margin: 3rem 0 2rem 0;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
     }
     
-    /* 카드 스타일 - Flat Modern */
+    /* 카드 스타일 - 글래스모피즘 */
     .metric-card {
-        background: #ffffff;
-        border-radius: 8px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
     
     .metric-card:hover {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.9);
     }
     
-    /* 버튼 스타일 - Flat Modern */
+    /* 버튼 스타일 - 네오모피즘 */
     .stButton > button {
-        background: #3182ce;
+        background: linear-gradient(145deg, #ffffff, #e6e6e6);
         border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        color: white;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        color: #1a202c;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.8);
         width: 100%;
+        font-size: 1rem;
+        letter-spacing: 0.01em;
     }
     
     .stButton > button:hover {
-        background: #2c5aa0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 12px 12px 24px rgba(0, 0, 0, 0.15), -12px -12px 24px rgba(255, 255, 255, 0.9);
+        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
     }
     
-    /* 사이드바 스타일 - Flat Modern */
+    .stButton > button:active {
+        transform: translateY(0);
+        box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+    }
+    
+    /* 사이드바 스타일 - 글래스모피즘 */
     .css-1d391kg {
-        background: #ffffff;
-        border-right: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
         text-align: center;
     }
     
-    /* 입력 필드 스타일 - Flat Modern */
+    /* 입력 필드 스타일 - 2025년 트렌드 */
     .stTextInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stTextInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 텍스트 영역 스타일 - Flat Modern */
+    /* 텍스트 영역 스타일 - 2025년 트렌드 */
     .stTextArea > div > div > textarea {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
     .stTextArea > div > div > textarea:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 숫자 입력 필드 스타일 - Flat Modern */
+    /* 숫자 입력 필드 스타일 - 2025년 트렌드 */
     .stNumberInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stNumberInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 날짜 입력 필드 스타일 - Flat Modern */
+    /* 날짜 입력 필드 스타일 - 2025년 트렌드 */
     .stDateInput > div > div > input {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        padding: 0.75rem;
-        font-size: 0.875rem;
+        border-radius: 12px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
     }
     
     .stDateInput > div > div > input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-        background: #ffffff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
     }
     
-    /* 체크박스 스타일 - Flat Modern */
+    /* 체크박스 스타일 - 2025년 트렌드 */
     .stCheckbox > div > div > div {
-        border-radius: 4px;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* 성공 메시지 - Flat Modern */
+    /* 성공 메시지 - 2025년 트렌드 */
     .success-message {
-        background: #c6f6d5;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #38a169;
-        font-weight: 500;
-    }
-    
-    /* 정보 메시지 - Flat Modern */
-    .info-message {
-        background: #bee3f8;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #3182ce;
-        font-weight: 500;
-    }
-    
-    /* 경고 메시지 - Flat Modern */
-    .warning-message {
-        background: #fed7d7;
-        color: #2d3748;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #e53e3e;
-        font-weight: 500;
-    }
-    
-    /* 진행률 바 스타일 - Flat Modern */
-    .stProgress > div > div > div > div {
-        background: #3182ce;
-        border-radius: 4px;
-    }
-    
-    /* 탭 스타일 - Flat Modern */
-    .stTabs > div > div > div > div {
-        border-radius: 8px 8px 0 0;
-        border: 1px solid #e2e8f0;
-        background: #f7fafc;
-    }
-    }
-    
-    /* 데이터프레임 스타일 */
-    .dataframe {
+        background: rgba(56, 161, 105, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
         border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(56, 161, 105, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
     }
     
-    /* 애니메이션 */
+    /* 정보 메시지 - 2025년 트렌드 */
+    .info-message {
+        background: rgba(102, 126, 234, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 경고 메시지 - 2025년 트렌드 */
+    .warning-message {
+        background: rgba(229, 62, 62, 0.1);
+        color: #1a202c;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid rgba(229, 62, 62, 0.2);
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 진행률 바 스타일 - 2025년 트렌드 */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* 탭 스타일 - 2025년 트렌드 */
+    .stTabs > div > div > div > div {
+        border-radius: 12px 12px 0 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+    
+    /* 데이터프레임 스타일 - 2025년 트렌드 */
+    .dataframe {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+    }
+    
+    /* 애니메이션 - 2025년 트렌드 */
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { 
+            opacity: 0; 
+            transform: translateY(30px) scale(0.95); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0) scale(1); 
+        }
     }
     
     @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-30px); }
-        to { opacity: 1; transform: translateX(0); }
+        from { 
+            opacity: 0; 
+            transform: translateX(-40px) scale(0.95); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateX(0) scale(1); 
+        }
     }
     
     @keyframes pulse {
         0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
+        50% { transform: scale(1.02); }
         100% { transform: scale(1); }
     }
     
     .fade-in {
-        animation: fadeIn 0.6s ease-out;
+        animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .slide-in {
-        animation: slideIn 0.5s ease-out;
+        animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .pulse {
-        animation: pulse 2s infinite;
+        animation: pulse 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* 로딩 스피너 */
+    /* 로딩 스피너 - 2025년 트렌드 */
     .loading-spinner {
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(102, 126, 234, 0.2);
         border-radius: 50%;
-        border-top-color: #4ECDC4;
-        animation: spin 1s ease-in-out infinite;
+        border-top-color: #667eea;
+        animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
     
-
-    
-    /* 고급 설정 확장 영역 */
+    /* 고급 설정 확장 영역 - 2025년 트렌드 */
     .advanced-settings-expanded {
-        border: 1px solid #808080;
-        border-radius: 6px;
-        padding: 1rem;
-        margin-top: 0.5rem;
-        background: #f8f9fa;
-        animation: expandSettings 0.3s ease-out;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: expandSettings 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
     
     @keyframes expandSettings {
         from {
             opacity: 0;
             max-height: 0;
-            transform: translateY(-10px);
+            transform: translateY(-20px) scale(0.95);
         }
         to {
             opacity: 1;
-            max-height: 500px;
-            transform: translateY(0);
+            max-height: 600px;
+            transform: translateY(0) scale(1);
         }
     }
     
-    /* 반응형 디자인 */
+    /* 반응형 디자인 - 2025년 트렌드 */
     @media (max-width: 768px) {
         .main-header {
+            font-size: 2.5rem;
+            margin: 2rem 0 1.5rem 0;
+        }
+        
+        .metric-card {
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+        
+        .stButton > button {
+            padding: 0.875rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .stTextInput > div > div > input,
+        .stNumberInput > div > div > input,
+        .stDateInput > div > div > input {
+            padding: 0.875rem 1rem;
+            font-size: 0.95rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .main-header {
             font-size: 2rem;
+            margin: 1.5rem 0 1rem 0;
         }
         
         .metric-card {
             padding: 1rem;
+            border-radius: 10px;
         }
         
-
+        .stButton > button {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
 
 def main():
-    # Flat Modern 헤더
+    # 2025년 트렌드 헤더
     st.markdown('<h1 class="main-header fade-in">유튜브 크롤러</h1>', unsafe_allow_html=True)
     
     # 서브타이틀
-    st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 2rem;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #4a5568; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 400;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
     
     # 실시간 알림 표시
     show_notifications()
@@ -338,13 +413,13 @@ def main():
     # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
     with st.container():
         # 상단 설정 영역
-        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">⚙️ 크롤링 설정</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">크롤링 설정</h2>', unsafe_allow_html=True)
         
         # 설정을 3개 컬럼으로 배치
         col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">🔍 검색 설정</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">검색 설정</h3>', unsafe_allow_html=True)
             
             # 키워드 개수 선택
             keyword_count = st.selectbox(
@@ -371,7 +446,7 @@ def main():
                 st.stop()
         
         with col2:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📊 수집 설정</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">수집 설정</h3>', unsafe_allow_html=True)
             
             videos_per_keyword = st.number_input(
                 "키워드당 영상 수",
@@ -397,7 +472,7 @@ def main():
                 comments_per_video = 0
         
         with col3:
-            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">📅 날짜 & 파일</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">날짜 & 파일</h3>', unsafe_allow_html=True)
             
             # 날짜 필터링 설정
             use_date_filter = st.checkbox(
