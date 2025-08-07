@@ -967,6 +967,71 @@ def main():
                             for col, header in enumerate(headers, 1):
                                 ws_comments.cell(row=row, column=col, value=str(comment.get(header, '')))
                 
+                # 키워드 분석 시트 (댓글이 있고 키워드 분석이 활성화된 경우)
+                if all_comments and enable_keyword_analysis:
+                    try:
+                        from youtube_crawler import KeywordAnalyzer
+                        
+                        # 댓글 텍스트 추출
+                        comment_texts = [comment.get('comment_text', '') for comment in all_comments if comment.get('comment_text')]
+                        
+                        if comment_texts:
+                            # 키워드 분석 수행
+                            analyzer = KeywordAnalyzer()
+                            analysis_result = analyzer.analyze_keywords(comment_texts, top_n=20)
+                            
+                            if analysis_result:
+                                # 키워드 분석 시트 생성
+                                ws_keywords = wb.create_sheet("Keyword_Analysis")
+                                
+                                # 키워드 빈도 데이터
+                                ws_keywords.cell(row=1, column=1, value="키워드")
+                                ws_keywords.cell(row=1, column=2, value="빈도")
+                                
+                                row = 2
+                                for keyword, freq in analysis_result.get('top_keywords', {}).items():
+                                    ws_keywords.cell(row=row, column=1, value=keyword)
+                                    ws_keywords.cell(row=row, column=2, value=freq)
+                                    row += 1
+                                
+                                # 통계 정보
+                                ws_keywords.cell(row=row+1, column=1, value="총 단어 수")
+                                ws_keywords.cell(row=row+1, column=2, value=analysis_result.get('total_words', 0))
+                                
+                                ws_keywords.cell(row=row+2, column=1, value="고유 단어 수")
+                                ws_keywords.cell(row=row+2, column=2, value=analysis_result.get('unique_words', 0))
+                                
+                                ws_keywords.cell(row=row+3, column=1, value="감정 점수")
+                                ws_keywords.cell(row=row+3, column=2, value=analysis_result.get('sentiment_score', 0))
+                                
+                                ws_keywords.cell(row=row+4, column=1, value="감정 분류")
+                                ws_keywords.cell(row=row+4, column=2, value=analysis_result.get('sentiment_label', '중립적'))
+                                
+                                # 성능 메트릭 시트
+                                ws_metrics = wb.create_sheet("Performance_Metrics")
+                                ws_metrics.cell(row=1, column=1, value="메트릭")
+                                ws_metrics.cell(row=1, column=2, value="값")
+                                
+                                ws_metrics.cell(row=2, column=1, value="수집된 영상 수")
+                                ws_metrics.cell(row=2, column=2, value=len(videos))
+                                
+                                ws_metrics.cell(row=3, column=1, value="수집된 댓글 수")
+                                ws_metrics.cell(row=3, column=2, value=len(all_comments))
+                                
+                                ws_metrics.cell(row=4, column=1, value="분석된 댓글 수")
+                                ws_metrics.cell(row=4, column=2, value=len(comment_texts))
+                                
+                                ws_metrics.cell(row=5, column=1, value="키워드 분석 완료")
+                                ws_metrics.cell(row=5, column=2, value="성공")
+                                
+                    except Exception as analysis_error:
+                        # 키워드 분석 실패 시 오류 정보 저장
+                        ws_analysis_error = wb.create_sheet("Analysis_Error")
+                        ws_analysis_error.cell(row=1, column=1, value="오류 유형")
+                        ws_analysis_error.cell(row=1, column=2, value="오류 메시지")
+                        ws_analysis_error.cell(row=2, column=1, value="키워드 분석 실패")
+                        ws_analysis_error.cell(row=2, column=2, value=str(analysis_error))
+                
                 # 메모리에 엑셀 파일 저장
                 excel_buffer = io.BytesIO()
                 wb.save(excel_buffer)

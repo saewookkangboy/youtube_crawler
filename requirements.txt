@@ -6,3 +6,5 @@ webdriver-manager
 python-dotenv
 requests
 numpy
+textblob
+konlpy
