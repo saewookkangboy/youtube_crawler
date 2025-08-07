@@ -303,7 +303,7 @@ def main():
     st.markdown('<h1 class="main-header fade-in">유튜브 크롤러</h1>', unsafe_allow_html=True)
     
     # 서브타이틀
-    st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 2rem;">현대적인 유튜브 데이터 수집 및 분석 서비스</p>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 2rem;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
     
     # 실시간 알림 표시
     show_notifications()
