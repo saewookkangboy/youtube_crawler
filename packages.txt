@@ -1,3 +1,5 @@
 chromium
 chromium-driver
 xvfb
+openjdk-11-jdk
+default-jdk

@@ -1132,9 +1132,24 @@ class YouTubeCrawler:
             if not comment_text or len(comment_text) < 3:
                 return ""
             
-            # KoNLPy를 사용한 정교한 한국어 형태소 분석
+            # Java 환경 확인 및 KoNLPy 사용
             if konlpy_available:
                 try:
+                    # Java 환경 확인
+                    import os
+                    import subprocess
+                    
+                    # JAVA_HOME 확인
+                    java_home = os.environ.get('JAVA_HOME')
+                    if not java_home:
+                        # Java 설치 확인
+                        try:
+                            subprocess.run(['java', '-version'], capture_output=True, check=True)
+                            logger.info("Java가 설치되어 있지만 JAVA_HOME이 설정되지 않음")
+                        except (subprocess.CalledProcessError, FileNotFoundError):
+                            logger.warning("Java가 설치되지 않음, 기본 키워드 추출 방식 사용")
+                            raise Exception("Java not available")
+                    
                     from konlpy.tag import Okt
                     okt = Okt()
                     
@@ -1166,9 +1181,9 @@ class YouTubeCrawler:
                     return ", ".join(selected_keywords) if selected_keywords else ""
                     
                 except Exception as konlpy_error:
-                    logger.warning(f"KoNLPy 키워드 추출 실패, 기본 방식 사용: {konlpy_error}")
+                    logger.warning(f"KoNLPy 키워드 추출 실패 (Java/JVM 문제), 기본 방식 사용: {konlpy_error}")
             
-            # KoNLPy가 없거나 실패한 경우 기본 방식 사용
+            # KoNLPy가 없거나 실패한 경우 개선된 기본 방식 사용
             keywords = []
             
             # 한글 명사 추출 (개선된 패턴 매칭)
@@ -1179,8 +1194,14 @@ class YouTubeCrawler:
             # 한글 명사와 영어 단어 결합
             all_words = korean_nouns + english_words
             
-            # 기본 불용어 제거
-            basic_stop_words = {'이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만'}
+            # 확장된 불용어 제거
+            basic_stop_words = {
+                '이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만', '그런데',
+                '그러나', '그래서', '그런', '이런', '저런', '어떤', '무슨', '어떻게', '왜',
+                '언제', '어디서', '누가', '무엇을', '어떤', '이것', '저것', '그것', '우리',
+                '저희', '그들', '당신', '너희', '그녀', '그분', '이분', '저분', '있', '하', '되',
+                '보', '알', '생각', '말', '일', '때', '곳', '사람', '나', '너', '그', '이', '저'
+            }
             filtered_words = [word for word in all_words if word not in basic_stop_words]
             
             # 빈도수 계산

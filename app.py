@@ -976,9 +976,16 @@ def main():
                         comment_texts = [comment.get('comment', '') for comment in all_comments if comment.get('comment')]
                         
                         if comment_texts:
-                            # 키워드 분석 수행
-                            analyzer = KeywordAnalyzer()
-                            analysis_result = analyzer.analyze_keywords(comment_texts, top_n=20)
+                            # 키워드 분석 수행 (Java 환경 문제 처리)
+                            try:
+                                analyzer = KeywordAnalyzer()
+                                analysis_result = analyzer.analyze_keywords(comment_texts, top_n=20)
+                            except Exception as java_error:
+                                if "JVM" in str(java_error) or "Java" in str(java_error):
+                                    st.warning("⚠️ Java 환경 문제로 고급 키워드 분석을 건너뜁니다. 기본 키워드 추출은 계속 작동합니다.")
+                                    analysis_result = None
+                                else:
+                                    raise java_error
                             
                             if analysis_result:
                                 # 키워드 분석 시트 생성
