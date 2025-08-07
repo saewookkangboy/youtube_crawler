@@ -119,6 +119,217 @@ st.markdown("""
         background: #ffffff;
     }
     
+    /* 크롤링 진행 과정 스타일 - 인터랙티브 */
+    .crawling-progress {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    .progress-step {
+        display: flex;
+        align-items: center;
+        margin: 1rem 0;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .progress-step.active {
+        background: rgba(255, 255, 255, 0.2);
+        border-left-color: #4ade80;
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+    }
+    
+    .progress-step.completed {
+        background: rgba(255, 255, 255, 0.15);
+        border-left-color: #10b981;
+    }
+    
+    .progress-step.error {
+        background: rgba(239, 68, 68, 0.1);
+        border-left-color: #ef4444;
+    }
+    
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .step-icon.pending {
+        background: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .step-icon.active {
+        background: #4ade80;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    .step-icon.completed {
+        background: #10b981;
+        color: white;
+    }
+    
+    .step-icon.error {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .step-content {
+        flex: 1;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.25rem;
+        font-size: 1rem;
+    }
+    
+    .step-description {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+    
+    .step-details {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    
+    /* 애니메이션 */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+        }
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .progress-step {
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    /* 진행률 바 스타일 */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #4ade80, #10b981, #059669);
+        border-radius: 10px;
+        height: 8px;
+    }
+    
+    .stProgress > div > div > div {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        height: 8px;
+    }
+    
+    /* 상태 메시지 스타일 */
+    .status-message {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-left: 4px solid #3182ce;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    .status-message.success {
+        border-left-color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .status-message.error {
+        border-left-color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .status-message.warning {
+        border-left-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .status-message.info {
+        border-left-color: #3182ce;
+        background: rgba(49, 130, 206, 0.1);
+    }
+    
+    /* 로딩 스피너 스타일 */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* 실시간 업데이트 카운터 */
+    .live-counter {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        display: inline-block;
+        margin: 0.25rem;
+        font-weight: 600;
+        color: white;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    .live-counter.primary {
+        background: rgba(49, 130, 206, 0.2);
+        border: 1px solid rgba(49, 130, 206, 0.3);
+    }
+    
+    .live-counter.success {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .live-counter.warning {
+        background: rgba(245, 158, 11, 0.2);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    }
+    
     /* 텍스트 영역 스타일 - Flat Modern */
     .stTextArea > div > div > textarea {
         border-radius: 8px;
@@ -393,12 +604,22 @@ def main():
             st.error("❌ 키워드를 입력해주세요.")
             st.stop()
         
+        # 인터랙티브 크롤링 진행 과정 UI
+        st.markdown("""
+        <div class="crawling-progress">
+            <h3 style="color: white; text-align: center; margin-bottom: 1.5rem;">🚀 크롤링 진행 과정</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # 진행 상황 표시
         progress_bar = st.progress(0)
         status_text = st.empty()
         
         # 크롤링 상태 표시 컨테이너
         status_container = st.container()
+        
+        # 실시간 통계 컨테이너
+        stats_container = st.container()
         
         # 크롤러 실행
         crawler = None
@@ -418,8 +639,18 @@ def main():
                 progress = (i / len(keywords)) * 0.5  # 50%까지
                 progress_bar.progress(progress)
                 
+                # 인터랙티브 진행 단계 표시
                 with status_container:
-                    st.info(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})")
+                    st.markdown(f"""
+                    <div class="progress-step active">
+                        <div class="step-icon active">🔍</div>
+                        <div class="step-content">
+                            <div class="step-title">키워드 검색 중</div>
+                            <div class="step-description">'{keyword}' 검색 중... ({i+1}/{len(keywords)})</div>
+                            <div class="step-details">진행률: {int(progress * 100)}%</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # 날짜 필터링 적용
                 start_dt = datetime.combine(start_date, datetime.min.time()) if start_date else None
@@ -428,8 +659,34 @@ def main():
                 keyword_videos = crawler.search_videos([keyword], videos_per_keyword, start_dt, end_dt)
                 videos.extend(keyword_videos)
                 
+                # 실시간 통계 업데이트
+                with stats_container:
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown(f"""
+                        <div class="live-counter primary">
+                            <span class="loading-spinner"></span>수집된 영상: {len(videos)}개
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"""
+                        <div class="live-counter success">
+                            완료된 키워드: {i+1}/{len(keywords)}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col3:
+                        st.markdown(f"""
+                        <div class="live-counter warning">
+                            진행률: {int(progress * 100)}%
+                        </div>
+                        """, unsafe_allow_html=True)
+                
                 with status_container:
-                    st.success(f"✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견")
+                    st.markdown(f"""
+                    <div class="status-message success">
+                        ✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견
+                    </div>
+                    """, unsafe_allow_html=True)
             
             if not videos:
                 st.error("❌ 검색된 영상이 없습니다.")
@@ -439,33 +696,81 @@ def main():
             all_comments = []
             if collect_comments and videos:
                 with status_container:
-                    st.info("💬 댓글을 수집하고 있습니다...")
+                    st.markdown("""
+                    <div class="status-message info">
+                        💬 댓글 수집을 시작합니다...
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 for i, video in enumerate(videos):
                     progress = 0.5 + (i / len(videos)) * 0.4  # 50%~90%
                     progress_bar.progress(progress)
                     
+                    # 인터랙티브 댓글 수집 진행 단계
                     with status_container:
-                        st.info(f"💬 댓글 수집 중... ({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...")
+                        st.markdown(f"""
+                        <div class="progress-step active">
+                            <div class="step-icon active">💬</div>
+                            <div class="step-content">
+                                <div class="step-title">댓글 수집 중</div>
+                                <div class="step-description">({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...</div>
+                                <div class="step-details">진행률: {int(progress * 100)}%</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                     
                     if video.get('video_id'):
                         try:
                             comments = crawler.get_video_comments(video['video_id'], comments_per_video)
                             all_comments.extend(comments)
                             
+                            # 실시간 댓글 통계 업데이트
+                            with stats_container:
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.markdown(f"""
+                                    <div class="live-counter primary">
+                                        수집된 영상: {len(videos)}개
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with col2:
+                                    st.markdown(f"""
+                                    <div class="live-counter success">
+                                        수집된 댓글: {len(all_comments)}개
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with col3:
+                                    st.markdown(f"""
+                                    <div class="live-counter warning">
+                                        진행률: {int(progress * 100)}%
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                            
                             # 댓글 수집 결과 표시
                             if comments:
                                 latest_time = comments[0].get('comment_time', 'N/A') if comments else 'N/A'
                                 top_likes = max([comment.get('like_count', 0) for comment in comments])
                                 with status_container:
-                                    st.success(f"✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})")
+                                    st.markdown(f"""
+                                    <div class="status-message success">
+                                        ✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             else:
                                 with status_container:
-                                    st.warning("⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다")
+                                    st.markdown("""
+                                    <div class="status-message warning">
+                                        ⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다
+                                    </div>
+                                    """, unsafe_allow_html=True)
                         except Exception as comment_error:
                             error_msg = str(comment_error)
                             with status_container:
-                                st.error(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)")
+                                st.markdown(f"""
+                                <div class="status-message error">
+                                    ❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)
+                                </div>
+                                """, unsafe_allow_html=True)
                             
                             # ChromeDriver 재연결 시도
                             if "connection" in error_msg.lower() or "webdriver" in error_msg.lower():
