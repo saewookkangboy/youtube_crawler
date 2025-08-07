@@ -1069,6 +1069,12 @@ class YouTubeCrawler:
             # 댓글에서 키워드 추출 (최대 5개)
             extracted_keywords = self._extract_comment_keywords(comment_text, max_keywords=5)
             
+            # 키워드 추출 결과 로깅 (디버깅용)
+            if extracted_keywords:
+                logger.info(f"댓글에서 키워드 추출 성공: {extracted_keywords}")
+            else:
+                logger.debug(f"댓글에서 키워드 추출 실패 또는 없음: {comment_text[:50]}...")
+            
             return {
                 'video_id': video_id,
                 'comment': comment_text,
@@ -1126,10 +1132,46 @@ class YouTubeCrawler:
             if not comment_text or len(comment_text) < 3:
                 return ""
             
-            # 간단한 키워드 추출 (한글 명사, 영어 단어)
+            # KoNLPy를 사용한 정교한 한국어 형태소 분석
+            if konlpy_available:
+                try:
+                    from konlpy.tag import Okt
+                    okt = Okt()
+                    
+                    # 명사 추출
+                    nouns = okt.nouns(comment_text)
+                    
+                    # 불용어 제거 및 길이 필터링
+                    stop_words = {
+                        '이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만', '그런데',
+                        '그러나', '그래서', '그런', '이런', '저런', '어떤', '무슨', '어떻게', '왜',
+                        '언제', '어디서', '누가', '무엇을', '어떤', '이것', '저것', '그것', '우리',
+                        '저희', '그들', '당신', '너희', '그녀', '그분', '이분', '저분'
+                    }
+                    
+                    filtered_nouns = [word for word in nouns if len(word) >= 2 and word not in stop_words]
+                    
+                    # 빈도수 계산
+                    word_freq = {}
+                    for word in filtered_nouns:
+                        word_freq[word] = word_freq.get(word, 0) + 1
+                    
+                    # 빈도수 순으로 정렬하여 상위 키워드 선택
+                    sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+                    
+                    # 최대 5개까지 선택
+                    selected_keywords = [word for word, freq in sorted_words[:max_keywords]]
+                    
+                    # 콤마로 구분하여 반환
+                    return ", ".join(selected_keywords) if selected_keywords else ""
+                    
+                except Exception as konlpy_error:
+                    logger.warning(f"KoNLPy 키워드 추출 실패, 기본 방식 사용: {konlpy_error}")
+            
+            # KoNLPy가 없거나 실패한 경우 기본 방식 사용
             keywords = []
             
-            # 한글 명사 추출 (간단한 패턴 매칭)
+            # 한글 명사 추출 (개선된 패턴 매칭)
             korean_nouns = re.findall(r'[가-힣]{2,}', comment_text)
             # 영어 단어 추출 (2글자 이상)
             english_words = re.findall(r'\b[a-zA-Z]{2,}\b', comment_text)
@@ -1137,9 +1179,13 @@ class YouTubeCrawler:
             # 한글 명사와 영어 단어 결합
             all_words = korean_nouns + english_words
             
+            # 기본 불용어 제거
+            basic_stop_words = {'이', '그', '저', '것', '수', '등', '및', '또는', '그리고', '하지만'}
+            filtered_words = [word for word in all_words if word not in basic_stop_words]
+            
             # 빈도수 계산
             word_freq = {}
-            for word in all_words:
+            for word in filtered_words:
                 if len(word) >= 2:  # 2글자 이상만
                     word_freq[word] = word_freq.get(word, 0) + 1
             

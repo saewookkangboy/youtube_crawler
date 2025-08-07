@@ -972,8 +972,8 @@ def main():
                     try:
                         from youtube_crawler import KeywordAnalyzer
                         
-                        # 댓글 텍스트 추출
-                        comment_texts = [comment.get('comment_text', '') for comment in all_comments if comment.get('comment_text')]
+                        # 댓글 텍스트 추출 (comment 필드에서 추출)
+                        comment_texts = [comment.get('comment', '') for comment in all_comments if comment.get('comment')]
                         
                         if comment_texts:
                             # 키워드 분석 수행
