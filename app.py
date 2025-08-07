@@ -388,6 +388,15 @@ def main():
     # 실시간 알림 표시
     show_notifications()
     
+    # 크롤링 진행 중 표시 (세션 상태 확인)
+    if hasattr(st.session_state, 'crawling_completed') and not st.session_state.crawling_completed:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0; text-align: center;">
+            <h3 style="margin: 0 0 0.5rem 0;">🔄 크롤링이 진행 중입니다</h3>
+            <p style="margin: 0; opacity: 0.9;">실제 크롤링 및 수집은 계속 진행중입니다. 페이지를 닫아도 백그라운드에서 작업이 계속됩니다.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
     # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
     with st.container():
         # 상단 설정 영역
@@ -510,22 +519,61 @@ def main():
     # 크롤링 실행 버튼 (중앙 배치)
     st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
     if st.button("🎯 크롤링 시작", type="primary", use_container_width=False, help="설정된 조건으로 크롤링을 시작합니다"):
+        # 크롤링 시작 시 세션 상태 초기화
+        st.session_state.crawling_completed = False
+        st.session_state.crawling_logs = []
+        
         if not keywords:
             st.error("❌ 키워드를 입력해주세요.")
             st.stop()
         
-        # 진행 상황 표시
+        # 실시간 크롤링 진행 상황 표시
+        st.markdown("---")
+        st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">🔄 크롤링 진행 상황</h3>', unsafe_allow_html=True)
+        
+        # 진행률 바
         progress_bar = st.progress(0)
-        status_text = st.empty()
+        
+        # 실시간 로그 표시 영역
+        log_container = st.container()
         
         # 크롤링 상태 표시 컨테이너
         status_container = st.container()
         
+        # 진행 단계별 상태 표시
+        step_container = st.container()
+        
+        # 실시간 로그 메시지 저장
+        if 'crawling_logs' not in st.session_state:
+            st.session_state.crawling_logs = []
+        
+        def add_log(message, log_type="info"):
+            """로그 메시지 추가"""
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            log_entry = {
+                'timestamp': timestamp,
+                'message': message,
+                'type': log_type
+            }
+            st.session_state.crawling_logs.append(log_entry)
+            
+            # 최근 20개 로그만 유지
+            if len(st.session_state.crawling_logs) > 20:
+                st.session_state.crawling_logs = st.session_state.crawling_logs[-20:]
+        
         # 크롤러 실행
         crawler = None
         try:
+            # 단계 1: 크롤러 초기화
+            with step_container:
+                st.markdown('<div style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea;">', unsafe_allow_html=True)
+                st.markdown("🔬 **1단계: 크롤러 초기화 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
-                with st.spinner("🔄 크롤러를 초기화하고 있습니다..."):
+                with st.spinner("🔬 크롤러를 초기화하고 있습니다..."):
+                    add_log("🔬 크롤러 초기화 시작", "info")
+                    
                     # 설정 적용
                     config = {
                         'max_workers': max_workers,
@@ -536,19 +584,30 @@ def main():
                     
                     crawler = YouTubeCrawler()
                     crawler.update_config(config)
+                    
+                    add_log("✅ 크롤러 초기화 완료", "success")
                     st.success("✅ 크롤러 초기화 완료")
             
-            # 영상 검색
+            progress_bar.progress(0.1)
+            
+            # 단계 2: 영상 검색
+            with step_container:
+                st.markdown('<div style="background: rgba(56, 161, 105, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #38a169;">', unsafe_allow_html=True)
+                st.markdown("🔍 **2단계: 영상 검색 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
+                add_log("🔍 영상 검색 시작", "info")
                 st.info("🔍 영상을 검색하고 있습니다...")
             
             videos = []
             
             for i, keyword in enumerate(keywords):
-                progress = (i / len(keywords)) * 0.5  # 50%까지
+                progress = 0.1 + (i / len(keywords)) * 0.4  # 10%~50%
                 progress_bar.progress(progress)
                 
                 with status_container:
+                    add_log(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})", "info")
                     st.info(f"🔍 '{keyword}' 검색 중... ({i+1}/{len(keywords)})")
                 
                 # 날짜 필터링 적용
@@ -559,16 +618,24 @@ def main():
                 videos.extend(keyword_videos)
                 
                 with status_container:
+                    add_log(f"✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견", "success")
                     st.success(f"✅ '{keyword}' 검색 완료 - {len(keyword_videos)}개 영상 발견")
             
             if not videos:
+                add_log("❌ 검색된 영상이 없습니다.", "error")
                 st.error("❌ 검색된 영상이 없습니다.")
                 return
             
-            # 댓글 수집
+            # 단계 3: 댓글 수집 (선택사항)
             all_comments = []
             if collect_comments and videos:
+                with step_container:
+                    st.markdown('<div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">', unsafe_allow_html=True)
+                    st.markdown("💬 **3단계: 댓글 수집 중...**", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
                 with status_container:
+                    add_log("💬 댓글 수집 시작", "info")
                     st.info("💬 댓글을 수집하고 있습니다...")
                 
                 for i, video in enumerate(videos):
@@ -576,6 +643,7 @@ def main():
                     progress_bar.progress(progress)
                     
                     with status_container:
+                        add_log(f"💬 댓글 수집 중... ({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...", "info")
                         st.info(f"💬 댓글 수집 중... ({i+1}/{len(videos)}) - {video.get('title', 'Unknown')[:30]}...")
                     
                     if video.get('video_id'):
@@ -588,33 +656,45 @@ def main():
                                 latest_time = comments[0].get('comment_time', 'N/A') if comments else 'N/A'
                                 top_likes = max([comment.get('like_count', 0) for comment in comments])
                                 with status_container:
+                                    add_log(f"✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})", "success")
                                     st.success(f"✅ 댓글 수집 완료 - {len(comments)}개 댓글 (최신: {latest_time}, 최고 좋아요: {top_likes})")
                             else:
                                 with status_container:
+                                    add_log("⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다", "warning")
                                     st.warning("⚠️ 댓글 수집 완료 - 수집된 댓글이 없습니다")
                         except Exception as comment_error:
                             error_msg = str(comment_error)
                             with status_container:
+                                add_log(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)", "error")
                                 st.error(f"❌ 댓글 수집 실패 - {video.get('title', 'Unknown')[:30]}... (오류: {error_msg[:100]}...)")
                             
                             # ChromeDriver 재연결 시도
                             if "connection" in error_msg.lower() or "webdriver" in error_msg.lower():
                                 try:
                                     with status_container:
+                                        add_log("🔄 ChromeDriver 재연결 시도 중...", "info")
                                         st.info("🔄 ChromeDriver 재연결 시도 중...")
                                     crawler.close()
                                     time.sleep(2)
                                     crawler = YouTubeCrawler()
                                     crawler.update_config(config)
                                     with status_container:
+                                        add_log("✅ ChromeDriver 재연결 성공", "success")
                                         st.success("✅ ChromeDriver 재연결 성공")
                                 except Exception as reconnect_error:
                                     with status_container:
+                                        add_log(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}", "error")
                                         st.error(f"❌ ChromeDriver 재연결 실패: {str(reconnect_error)}")
                                     break
             
-            # 엑셀 저장
+            # 단계 4: 데이터 저장
+            with step_container:
+                st.markdown('<div style="background: rgba(236, 72, 153, 0.1); padding: 1rem; border-radius: 8px; border-left: 4px solid #ec4899;">', unsafe_allow_html=True)
+                st.markdown("💾 **4단계: 데이터 저장 중...**", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            
             with status_container:
+                add_log("💾 데이터 저장 시작", "info")
                 st.info("💾 데이터를 저장하고 있습니다...")
             progress_bar.progress(0.95)
             
@@ -622,7 +702,39 @@ def main():
             
             progress_bar.progress(1.0)
             with status_container:
+                add_log("✅ 크롤링 완료!", "success")
                 st.success("✅ 크롤링 완료!")
+            
+            # 실시간 로그 표시
+            with log_container:
+                st.markdown('<h4 style="color: #4a5568; font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">📋 실시간 크롤링 로그</h4>', unsafe_allow_html=True)
+                
+                # 로그 메시지들을 역순으로 표시 (최신이 위에)
+                for log in reversed(st.session_state.crawling_logs):
+                    if log['type'] == 'success':
+                        st.markdown(f"""
+                        <div style="background: rgba(56, 161, 105, 0.1); padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; border-left: 3px solid #38a169;">
+                            <small style="color: #666;">[{log['timestamp']}]</small> {log['message']}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif log['type'] == 'error':
+                        st.markdown(f"""
+                        <div style="background: rgba(229, 62, 62, 0.1); padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; border-left: 3px solid #e53e3e;">
+                            <small style="color: #666;">[{log['timestamp']}]</small> {log['message']}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif log['type'] == 'warning':
+                        st.markdown(f"""
+                        <div style="background: rgba(245, 158, 11, 0.1); padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; border-left: 3px solid #f59e0b;">
+                            <small style="color: #666;">[{log['timestamp']}]</small> {log['message']}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"""
+                        <div style="background: rgba(102, 126, 234, 0.1); padding: 0.5rem; border-radius: 4px; margin: 0.25rem 0; border-left: 3px solid #667eea;">
+                            <small style="color: #666;">[{log['timestamp']}]</small> {log['message']}
+                        </div>
+                        """, unsafe_allow_html=True)
             
             if saved_file:
                 st.success(f"🎉 크롤링이 완료되었습니다!")
@@ -643,8 +755,12 @@ def main():
                 st.session_state.start_date = start_date
                 st.session_state.end_date = end_date
                 
+                # 크롤링 완료 상태 저장
+                st.session_state.crawling_completed = True
+                
         except Exception as e:
             error_msg = str(e)
+            add_log(f"❌ 크롤링 중 오류 발생: {error_msg[:100]}...", "error")
             
             # ChromeDriver 관련 오류인지 확인
             if "chromedriver" in error_msg.lower() or "webdriver" in error_msg.lower():
