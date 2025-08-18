@@ -1931,6 +1931,7 @@ def main():
                             st.session_state.comments_only = all_comments
                             st.session_state.comments_extraction_completed = True
                             st.session_state.video_ids_processed = video_ids
+                            st.session_state.keyword_analysis_enabled = enable_keyword_analysis
                             
                             st.success(f"🎉 댓글 추출 완료! 총 {len(all_comments)}개 댓글을 수집했습니다.")
                             st.rerun()
@@ -1970,7 +1971,9 @@ def main():
                 
                 with tab_analysis:
                     # 키워드 분석 수행
-                    if enable_keyword_analysis:
+                    # 세션에서 키워드 분석 설정 가져오기
+                    keyword_analysis_enabled = st.session_state.get('keyword_analysis_enabled', True)
+                    if keyword_analysis_enabled:
                         st.markdown("### 🔍 키워드 분석 결과")
                         
                         # 분석 진행 표시
@@ -2116,7 +2119,7 @@ def main():
                 
                 # 데이터 초기화
                 if st.button("🗑️ 댓글 데이터 초기화"):
-                    for key in ['comments_only', 'comments_extraction_completed', 'video_ids_processed']:
+                    for key in ['comments_only', 'comments_extraction_completed', 'video_ids_processed', 'keyword_analysis_enabled', 'keyword_analysis_results', 'video_keywords_analysis']:
                         if key in st.session_state:
                             del st.session_state[key]
                     st.rerun()
