@@ -1818,8 +1818,8 @@ def main():
                         st.success("히스토리가 삭제되었습니다!")
                         st.rerun()
         
-        # 첫 번째 탭의 데이터가 없을 때 안내 메시지
-        else:
+    # 첫 번째 탭의 데이터가 없을 때 안내 메시지
+    else:
             st.markdown("""
             <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 10px; margin: 2rem 0;">
                 <h3 style="color: #4a5568; margin-bottom: 1rem;">🚀 크롤링을 시작해보세요!</h3>
