@@ -1056,7 +1056,8 @@ def main():
             # 키워드 검증
             if not keywords:
                 st.warning("⚠️ 최소 1개의 키워드를 입력해주세요.")
-                return
+                # 첫 번째 탭만 종료하고 두 번째 탭은 계속 진행
+                pass
         
         with col2:
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">수집 설정</h3>', unsafe_allow_html=True)
@@ -1212,7 +1213,8 @@ def main():
         
         if not keywords:
             st.error("❌ 키워드를 입력해주세요.")
-            return
+            # 키워드가 없으면 크롤링을 시작하지 않음
+            pass
         
         # 콤팩트한 진행 상황 표시
         progress_container = st.container()
