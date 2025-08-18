@@ -1202,7 +1202,7 @@ def main():
             button_text = "🎯 크롤링 시작"
             button_help = "설정된 조건으로 크롤링을 시작합니다" if not button_disabled else "키워드를 입력해주세요"
         
-                if _ := st.button(button_text, type="primary", use_container_width=True, 
+        if _ := st.button(button_text, type="primary", use_container_width=True, 
                     disabled=button_disabled, 
                     help=button_help):
             # 크롤링 시작 시 세션 상태 초기화
