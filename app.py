@@ -15,6 +15,159 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 키워드 분석 함수
+def perform_keyword_analysis(texts: List[str]) -> Dict[str, Any]:
+    """댓글 텍스트에서 키워드 분석 수행"""
+    try:
+        import re
+        from collections import Counter
+        from textblob import TextBlob
+        
+        # 모든 텍스트를 하나로 합치기
+        combined_text = ' '.join(texts)
+        
+        # 텍스트 전처리
+        # 특수문자 제거, 소문자 변환
+        cleaned_text = re.sub(r'[^\w\s]', '', combined_text.lower())
+        
+        # 한국어와 영어 단어 분리
+        words = []
+        for text in texts:
+            # 한국어 단어 추출
+            korean_words = re.findall(r'[가-힣]+', text)
+            words.extend(korean_words)
+            
+            # 영어 단어 추출
+            english_words = re.findall(r'\b[a-zA-Z]+\b', text.lower())
+            words.extend(english_words)
+        
+        # 불용어 제거
+        stop_words = {
+            '이', '그', '저', '것', '수', '등', '때', '곳', '말', '일', '년', '월', '일',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of',
+            'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has',
+            'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
+            'might', 'can', 'must', 'shall', 'am', 'i', 'you', 'he', 'she', 'it',
+            'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his',
+            'her', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs'
+        }
+        
+        filtered_words = [word for word in words if word not in stop_words and len(word) > 1]
+        
+        # 단어 빈도 계산
+        word_counts = Counter(filtered_words)
+        top_keywords = word_counts.most_common(20)
+        
+        # 키워드 통계
+        total_keywords = len(filtered_words)
+        unique_keywords = len(word_counts)
+        avg_length = sum(len(word) for word in filtered_words) / total_keywords if total_keywords > 0 else 0
+        
+        # 감정 분석
+        sentiment_scores = []
+        for text in texts:
+            try:
+                blob = TextBlob(text)
+                sentiment_scores.append(blob.sentiment.polarity)
+            except:
+                sentiment_scores.append(0)
+        
+        # 감정 분류
+        positive_count = sum(1 for score in sentiment_scores if score > 0.1)
+        negative_count = sum(1 for score in sentiment_scores if score < -0.1)
+        neutral_count = len(sentiment_scores) - positive_count - negative_count
+        
+        total_sentiments = len(sentiment_scores)
+        sentiment_analysis = {
+            'positive': (positive_count / total_sentiments * 100) if total_sentiments > 0 else 0,
+            'negative': (negative_count / total_sentiments * 100) if total_sentiments > 0 else 0,
+            'neutral': (neutral_count / total_sentiments * 100) if total_sentiments > 0 else 0
+        }
+        
+        return {
+            'top_keywords': top_keywords,
+            'keyword_stats': {
+                'total_keywords': total_keywords,
+                'unique_keywords': unique_keywords,
+                'avg_length': avg_length
+            },
+            'sentiment_analysis': sentiment_analysis,
+            'processed_texts': len(texts)
+        }
+        
+    except ImportError:
+        # TextBlob이 없는 경우 기본 분석
+        logger.warning("TextBlob이 설치되지 않아 기본 키워드 분석만 수행합니다.")
+        return perform_basic_keyword_analysis(texts)
+    except Exception as e:
+        logger.error(f"키워드 분석 중 오류: {e}")
+        return {
+            'top_keywords': [],
+            'keyword_stats': {'total_keywords': 0, 'unique_keywords': 0, 'avg_length': 0},
+            'sentiment_analysis': {'positive': 0, 'negative': 0, 'neutral': 0},
+            'processed_texts': 0
+        }
+
+def perform_basic_keyword_analysis(texts: List[str]) -> Dict[str, Any]:
+    """기본 키워드 분석 (TextBlob 없이)"""
+    try:
+        import re
+        from collections import Counter
+        
+        # 모든 텍스트를 하나로 합치기
+        combined_text = ' '.join(texts)
+        
+        # 텍스트 전처리
+        cleaned_text = re.sub(r'[^\w\s]', '', combined_text.lower())
+        
+        # 한국어와 영어 단어 분리
+        words = []
+        for text in texts:
+            # 한국어 단어 추출
+            korean_words = re.findall(r'[가-힣]+', text)
+            words.extend(korean_words)
+            
+            # 영어 단어 추출
+            english_words = re.findall(r'\b[a-zA-Z]+\b', text.lower())
+            words.extend(english_words)
+        
+        # 불용어 제거
+        stop_words = {
+            '이', '그', '저', '것', '수', '등', '때', '곳', '말', '일', '년', '월', '일',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of'
+        }
+        
+        filtered_words = [word for word in words if word not in stop_words and len(word) > 1]
+        
+        # 단어 빈도 계산
+        word_counts = Counter(filtered_words)
+        top_keywords = word_counts.most_common(20)
+        
+        # 키워드 통계
+        total_keywords = len(filtered_words)
+        unique_keywords = len(word_counts)
+        avg_length = sum(len(word) for word in filtered_words) / total_keywords if total_keywords > 0 else 0
+        
+        return {
+            'top_keywords': top_keywords,
+            'keyword_stats': {
+                'total_keywords': total_keywords,
+                'unique_keywords': unique_keywords,
+                'avg_length': avg_length
+            },
+            'sentiment_analysis': {'positive': 0, 'negative': 0, 'neutral': 0},
+            'processed_texts': len(texts)
+        }
+        
+    except Exception as e:
+        logger.error(f"기본 키워드 분석 중 오류: {e}")
+        return {
+            'top_keywords': [],
+            'keyword_stats': {'total_keywords': 0, 'unique_keywords': 0, 'avg_length': 0},
+            'sentiment_analysis': {'positive': 0, 'negative': 0, 'neutral': 0},
+            'processed_texts': 0
+        }
+
 # plotly 대신 streamlit의 기본 차트 기능 사용
 PLOTLY_AVAILABLE = False
 
@@ -1808,12 +1961,103 @@ def main():
             # 댓글 데이터 표시
             if comments:
                 df_comments = pd.DataFrame(comments)
-                st.dataframe(df_comments, use_container_width=True)
+                
+                # 탭으로 데이터와 분석 분리
+                tab_data, tab_analysis = st.tabs(["📋 댓글 데이터", "🔍 키워드 분석"])
+                
+                with tab_data:
+                    st.dataframe(df_comments, use_container_width=True)
+                
+                with tab_analysis:
+                    # 키워드 분석 수행
+                    if enable_keyword_analysis:
+                        st.markdown("### 🔍 키워드 분석 결과")
+                        
+                        # 분석 진행 표시
+                        with st.spinner("🔍 키워드 분석 중..."):
+                            try:
+                                # 모든 댓글 텍스트 수집
+                                all_texts = []
+                                for comment in comments:
+                                    text = comment.get('text', '')
+                                    if text and isinstance(text, str):
+                                        all_texts.append(text)
+                                
+                                if all_texts:
+                                    # 키워드 분석 함수 호출
+                                    keyword_results = perform_keyword_analysis(all_texts)
+                                    
+                                    # 분석 결과 표시
+                                    col1, col2 = st.columns(2)
+                                    
+                                    with col1:
+                                        st.markdown("#### 📊 상위 키워드")
+                                        if keyword_results['top_keywords']:
+                                            for i, (keyword, count) in enumerate(keyword_results['top_keywords'][:10], 1):
+                                                st.markdown(f"**{i}.** {keyword} ({count}회)")
+                                        else:
+                                            st.info("분석된 키워드가 없습니다.")
+                                    
+                                    with col2:
+                                        st.markdown("#### 📈 키워드 분포")
+                                        if keyword_results['keyword_stats']:
+                                            st.write(f"**총 키워드 수**: {keyword_results['keyword_stats']['total_keywords']}")
+                                            st.write(f"**고유 키워드 수**: {keyword_results['keyword_stats']['unique_keywords']}")
+                                            st.write(f"**평균 키워드 길이**: {keyword_results['keyword_stats']['avg_length']:.1f}")
+                                        else:
+                                            st.info("키워드 통계를 계산할 수 없습니다.")
+                                    
+                                    # 감정 분석 결과
+                                    if keyword_results['sentiment_analysis']:
+                                        st.markdown("#### 😊 감정 분석")
+                                        sentiment = keyword_results['sentiment_analysis']
+                                        
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.metric("긍정적", f"{sentiment['positive']:.1f}%")
+                                        with col2:
+                                            st.metric("중립적", f"{sentiment['neutral']:.1f}%")
+                                        with col3:
+                                            st.metric("부정적", f"{sentiment['negative']:.1f}%")
+                                    
+                                    # 영상별 키워드 분석
+                                    st.markdown("#### 🎥 영상별 키워드 분석")
+                                    video_keywords = {}
+                                    
+                                    for video_id in video_ids_processed:
+                                        video_comments = [c for c in comments if c.get('video_id') == video_id]
+                                        if video_comments:
+                                            video_texts = [c.get('text', '') for c in video_comments if c.get('text')]
+                                            if video_texts:
+                                                video_analysis = perform_keyword_analysis(video_texts)
+                                                video_keywords[video_id] = video_analysis
+                                    
+                                    # 영상별 키워드 표시
+                                    for video_id, analysis in video_keywords.items():
+                                        with st.expander(f"📹 영상 {video_id}"):
+                                            if analysis['top_keywords']:
+                                                st.write("**상위 키워드**:")
+                                                for keyword, count in analysis['top_keywords'][:5]:
+                                                    st.write(f"- {keyword} ({count}회)")
+                                            else:
+                                                st.info("이 영상에서 분석된 키워드가 없습니다.")
+                                    
+                                    # 분석 결과를 세션에 저장
+                                    st.session_state.keyword_analysis_results = keyword_results
+                                    st.session_state.video_keywords_analysis = video_keywords
+                                    
+                                else:
+                                    st.warning("⚠️ 분석할 댓글 텍스트가 없습니다.")
+                                    
+                            except Exception as e:
+                                st.error(f"❌ 키워드 분석 중 오류 발생: {str(e)}")
+                    else:
+                        st.info("💡 키워드 분석이 비활성화되어 있습니다. 설정에서 활성화하세요.")
                 
                 # 파일 다운로드
                 st.markdown("### 📥 댓글 데이터 다운로드")
                 
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     # CSV 다운로드
                     csv_data = df_comments.to_csv(index=False, encoding='utf-8-sig')
@@ -1825,7 +2069,7 @@ def main():
                     )
                 
                 with col2:
-                    # 엑셀 다운로드
+                    # 엑셀 다운로드 (댓글만)
                     from io import BytesIO
                     with BytesIO() as buffer:
                         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
@@ -1838,6 +2082,37 @@ def main():
                         file_name=f"comments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
+                
+                with col3:
+                    # 키워드 분석 결과가 있는 경우 분석 결과 포함 엑셀 다운로드
+                    if hasattr(st.session_state, 'keyword_analysis_results') and st.session_state.keyword_analysis_results:
+                        keyword_results = st.session_state.keyword_analysis_results
+                        
+                        # 키워드 분석 결과를 DataFrame으로 변환
+                        keyword_df = pd.DataFrame(keyword_results['top_keywords'], columns=['키워드', '빈도'])
+                        
+                        # 감정 분석 결과를 DataFrame으로 변환
+                        sentiment_df = pd.DataFrame([keyword_results['sentiment_analysis']])
+                        
+                        # 통계 정보를 DataFrame으로 변환
+                        stats_df = pd.DataFrame([keyword_results['keyword_stats']])
+                        
+                        with BytesIO() as buffer:
+                            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                                df_comments.to_excel(writer, sheet_name='Comments', index=False)
+                                keyword_df.to_excel(writer, sheet_name='Keywords', index=False)
+                                sentiment_df.to_excel(writer, sheet_name='Sentiment', index=False)
+                                stats_df.to_excel(writer, sheet_name='Statistics', index=False)
+                            analysis_excel_data = buffer.getvalue()
+                        
+                        st.download_button(
+                            label="📊 분석 포함 Excel",
+                            data=analysis_excel_data,
+                            file_name=f"comments_with_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    else:
+                        st.info("💡 키워드 분석을 활성화하면 분석 결과가 포함된 파일을 다운로드할 수 있습니다.")
                 
                 # 데이터 초기화
                 if st.button("🗑️ 댓글 데이터 초기화"):
