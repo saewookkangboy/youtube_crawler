@@ -2,10 +2,188 @@ import streamlit as st
 import pandas as pd
 import os
 import time
+import psutil
+import gc
+import json
+import hashlib
 from datetime import datetime, timedelta
 from youtube_crawler import YouTubeCrawler
+from typing import Dict, List, Optional, Any
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # plotly 대신 streamlit의 기본 차트 기능 사용
 PLOTLY_AVAILABLE = False
+
+# 성능 모니터링 클래스
+class PerformanceMonitor:
+    def __init__(self):
+        self.start_time = None
+        self.memory_usage = []
+        self.cpu_usage = []
+        self.operation_times = {}
+    
+    def start_monitoring(self):
+        self.start_time = time.time()
+        self.memory_usage = []
+        self.cpu_usage = []
+        self.operation_times = {}
+    
+    def record_operation(self, operation_name: str, duration: float):
+        if operation_name not in self.operation_times:
+            self.operation_times[operation_name] = []
+        self.operation_times[operation_name].append(duration)
+    
+    def get_memory_usage(self):
+        process = psutil.Process()
+        return process.memory_info().rss / 1024 / 1024  # MB
+    
+    def get_cpu_usage(self):
+        return psutil.cpu_percent()
+    
+    def get_performance_summary(self):
+        if not self.start_time:
+            return {}
+        
+        total_time = time.time() - self.start_time
+        avg_memory = sum(self.memory_usage) / len(self.memory_usage) if self.memory_usage else 0
+        avg_cpu = sum(self.cpu_usage) / len(self.cpu_usage) if self.cpu_usage else 0
+        
+        return {
+            'total_time': total_time,
+            'avg_memory_mb': avg_memory,
+            'avg_cpu_percent': avg_cpu,
+            'operations': self.operation_times
+        }
+
+# 히스토리 관리 클래스
+class HistoryManager:
+    def __init__(self):
+        self.history_file = "download_history.json"
+        self.max_history = 50
+    
+    def add_download_record(self, filename: str, data_type: str, record_count: int, 
+                           file_size: int, download_time: str):
+        history = self.load_history()
+        
+        record = {
+            'id': hashlib.md5(f"{filename}{download_time}".encode()).hexdigest()[:8],
+            'filename': filename,
+            'data_type': data_type,
+            'record_count': record_count,
+            'file_size_mb': round(file_size / 1024 / 1024, 2),
+            'download_time': download_time,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        history.insert(0, record)
+        
+        # 최대 기록 수 제한
+        if len(history) > self.max_history:
+            history = history[:self.max_history]
+        
+        self.save_history(history)
+        return record
+    
+    def load_history(self) -> List[Dict]:
+        try:
+            if os.path.exists(self.history_file):
+                with open(self.history_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"히스토리 로드 오류: {e}")
+        return []
+    
+    def save_history(self, history: List[Dict]):
+        try:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                json.dump(history, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"히스토리 저장 오류: {e}")
+    
+    def get_recent_history(self, limit: int = 10) -> List[Dict]:
+        history = self.load_history()
+        return history[:limit]
+    
+    def clear_history(self):
+        try:
+            if os.path.exists(self.history_file):
+                os.remove(self.history_file)
+        except Exception as e:
+            logger.error(f"히스토리 삭제 오류: {e}")
+
+# 캐시 관리 클래스
+class CacheManager:
+    def __init__(self, cache_dir="cache"):
+        self.cache_dir = cache_dir
+        self.max_cache_size = 100 * 1024 * 1024  # 100MB
+        os.makedirs(cache_dir, exist_ok=True)
+    
+    def get_cache_key(self, data: str) -> str:
+        return hashlib.md5(data.encode()).hexdigest()
+    
+    def get_cache_path(self, key: str) -> str:
+        return os.path.join(self.cache_dir, f"{key}.pkl")
+    
+    def is_cached(self, key: str) -> bool:
+        return os.path.exists(self.get_cache_path(key))
+    
+    def save_to_cache(self, key: str, data: Any):
+        try:
+            import pickle
+            cache_path = self.get_cache_path(key)
+            with open(cache_path, 'wb') as f:
+                pickle.dump(data, f)
+            self._cleanup_cache()
+        except Exception as e:
+            logger.error(f"캐시 저장 오류: {e}")
+    
+    def load_from_cache(self, key: str) -> Optional[Any]:
+        try:
+            import pickle
+            cache_path = self.get_cache_path(key)
+            if os.path.exists(cache_path):
+                with open(cache_path, 'rb') as f:
+                    return pickle.load(f)
+        except Exception as e:
+            logger.error(f"캐시 로드 오류: {e}")
+        return None
+    
+    def _cleanup_cache(self):
+        """캐시 크기 제한 및 오래된 파일 정리"""
+        try:
+            cache_files = []
+            for filename in os.listdir(self.cache_dir):
+                if filename.endswith('.pkl'):
+                    filepath = os.path.join(self.cache_dir, filename)
+                    cache_files.append((filepath, os.path.getmtime(filepath)))
+            
+            # 파일 크기 계산
+            total_size = sum(os.path.getsize(f[0]) for f in cache_files)
+            
+            if total_size > self.max_cache_size:
+                # 오래된 파일부터 삭제
+                cache_files.sort(key=lambda x: x[1])
+                for filepath, _ in cache_files:
+                    os.remove(filepath)
+                    total_size -= os.path.getsize(filepath)
+                    if total_size <= self.max_cache_size * 0.8:  # 80%까지 줄임
+                        break
+        except Exception as e:
+            logger.error(f"캐시 정리 오류: {e}")
+
+# 전역 성능 모니터, 히스토리 매니저, 캐시 매니저 초기화
+if 'performance_monitor' not in st.session_state:
+    st.session_state.performance_monitor = PerformanceMonitor()
+
+if 'history_manager' not in st.session_state:
+    st.session_state.history_manager = HistoryManager()
+
+if 'cache_manager' not in st.session_state:
+    st.session_state.cache_manager = CacheManager()
 
 # 페이지 설정
 st.set_page_config(
@@ -571,11 +749,41 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def main():
+    # 시스템 점검 및 성능 모니터링 시작
+    performance_monitor = st.session_state.performance_monitor
+    history_manager = st.session_state.history_manager
+    cache_manager = st.session_state.cache_manager
+    
+    # 성능 모니터링 시작
+    performance_monitor.start_monitoring()
+    
     # 2025년 트렌드 헤더
     st.markdown('<h1 class="main-header fade-in">유튜브 크롤러</h1>', unsafe_allow_html=True)
     
     # 서브타이틀
     st.markdown('<p style="text-align: center; color: #4a5568; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 400;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
+    
+    # 시스템 상태 표시
+    with st.sidebar:
+        st.markdown("### 🔧 시스템 상태")
+        
+        # 메모리 사용량
+        memory_usage = performance_monitor.get_memory_usage()
+        st.metric("메모리 사용량", f"{memory_usage:.1f} MB")
+        
+        # CPU 사용량
+        cpu_usage = performance_monitor.get_cpu_usage()
+        st.metric("CPU 사용량", f"{cpu_usage:.1f}%")
+        
+        # 캐시 상태
+        cache_files = len([f for f in os.listdir(cache_manager.cache_dir) if f.endswith('.pkl')])
+        st.metric("캐시 파일 수", cache_files)
+        
+        # 성능 최적화 버튼
+        if st.button("🧹 메모리 정리"):
+            gc.collect()
+            st.success("메모리 정리 완료!")
+            st.rerun()
     
     # 실시간 알림 표시 (현재 비활성화)
     
@@ -714,6 +922,24 @@ def main():
         # 크롤링 시작 시 세션 상태 초기화
         st.session_state.crawling_completed = False
         st.session_state.crawling_logs = []
+        
+        # 성능 모니터링 시작
+        performance_monitor.start_monitoring()
+        
+        # 캐시 키 생성
+        cache_key_data = f"{','.join(keywords)}_{videos_per_keyword}_{collect_comments}_{comments_per_video}"
+        cache_key = cache_manager.get_cache_key(cache_key_data)
+        
+        # 캐시된 결과 확인
+        if cache_manager.is_cached(cache_key):
+            cached_result = cache_manager.load_from_cache(cache_key)
+            if cached_result:
+                st.success("🚀 캐시된 결과를 불러왔습니다!")
+                st.session_state.videos = cached_result.get('videos', [])
+                st.session_state.comments = cached_result.get('comments', [])
+                st.session_state.crawling_completed = True
+                st.rerun()
+                return
         
         if not keywords:
             st.error("❌ 키워드를 입력해주세요.")
@@ -1029,6 +1255,28 @@ def main():
                 # 디버깅 정보 표시
                 add_log(f"💾 세션 상태 저장 완료 - 영상: {len(videos)}, 댓글: {len(all_comments)}", "info")
                 
+                # 성능 요약 표시
+                performance_summary = performance_monitor.get_performance_summary()
+                with st.expander("📊 성능 요약"):
+                    st.write(f"**총 실행 시간**: {performance_summary.get('total_time', 0):.2f}초")
+                    st.write(f"**평균 메모리 사용량**: {performance_summary.get('avg_memory_mb', 0):.1f} MB")
+                    st.write(f"**평균 CPU 사용량**: {performance_summary.get('avg_cpu_percent', 0):.1f}%")
+                    
+                    if performance_summary.get('operations'):
+                        st.write("**작업별 실행 시간**:")
+                        for op, times in performance_summary['operations'].items():
+                            avg_time = sum(times) / len(times)
+                            st.write(f"- {op}: {avg_time:.2f}초 (평균)")
+                
+                # 결과를 캐시에 저장
+                cache_result = {
+                    'videos': videos,
+                    'comments': all_comments,
+                    'timestamp': datetime.now().isoformat()
+                }
+                cache_manager.save_to_cache(cache_key, cache_result)
+                add_log("💾 결과를 캐시에 저장했습니다.", "info")
+                
             except Exception as excel_error:
                 st.error(f"❌ 엑셀 파일 생성 오류: {str(excel_error)}")
                 # CSV로 대체
@@ -1201,10 +1449,22 @@ def main():
             
             # 파일 다운로드 버튼들
             if file_format == "XLSX (Excel)" and hasattr(st.session_state, 'excel_buffer'):
+                excel_data = st.session_state.excel_buffer
+                filename = st.session_state.get('filename', 'youtube_data.xlsx')
+                
+                # 히스토리에 다운로드 기록 추가
+                download_record = history_manager.add_download_record(
+                    filename=filename,
+                    data_type="Excel",
+                    record_count=len(videos) + len(comments),
+                    file_size=len(excel_data),
+                    download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
+                
                 st.download_button(
                     label="📥 엑셀 파일 다운로드",
-                    data=st.session_state.excel_buffer,
-                    file_name=st.session_state.get('filename', 'youtube_data.xlsx'),
+                    data=excel_data,
+                    file_name=filename,
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     help="수집된 모든 데이터가 포함된 엑셀 파일을 다운로드합니다"
                 )
@@ -1213,6 +1473,16 @@ def main():
                 if videos:
                     videos_df = pd.DataFrame(videos)
                     csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
+                    
+                    # 히스토리에 다운로드 기록 추가
+                    history_manager.add_download_record(
+                        filename="videos.csv",
+                        data_type="CSV (Videos)",
+                        record_count=len(videos),
+                        file_size=len(csv_videos.encode('utf-8-sig')),
+                        download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                    
                     st.download_button(
                         label="📥 영상 데이터 CSV",
                         data=csv_videos,
@@ -1224,6 +1494,16 @@ def main():
                 if comments:
                     comments_df = pd.DataFrame(comments)
                     csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
+                    
+                    # 히스토리에 다운로드 기록 추가
+                    history_manager.add_download_record(
+                        filename="comments.csv",
+                        data_type="CSV (Comments)",
+                        record_count=len(comments),
+                        file_size=len(csv_comments.encode('utf-8-sig')),
+                        download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                    
                     st.download_button(
                         label="📥 댓글 데이터 CSV",
                         data=csv_comments,
@@ -1232,12 +1512,35 @@ def main():
                         help="댓글 데이터만 포함된 CSV 파일을 다운로드합니다"
                     )
             
-            # 데이터 초기화 버튼
-            if st.button("🗑️ 데이터 초기화", help="수집된 데이터를 모두 삭제합니다"):
-                for key in ['videos', 'comments', 'excel_buffer', 'filename', 'crawling_completed']:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.rerun()
+            # 히스토리 관리 섹션
+            st.markdown("---")
+            st.markdown("### 📋 다운로드 히스토리")
+            
+            recent_history = history_manager.get_recent_history(5)
+            if recent_history:
+                for record in recent_history:
+                    with st.expander(f"📄 {record['filename']} ({record['download_time']})"):
+                        st.write(f"**파일 유형**: {record['data_type']}")
+                        st.write(f"**레코드 수**: {record['record_count']:,}개")
+                        st.write(f"**파일 크기**: {record['file_size_mb']} MB")
+                        st.write(f"**다운로드 시간**: {record['download_time']}")
+            else:
+                st.info("📋 다운로드 히스토리가 없습니다.")
+            
+            # 히스토리 관리 버튼들
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🗑️ 데이터 초기화", help="수집된 데이터를 모두 삭제합니다"):
+                    for key in ['videos', 'comments', 'excel_buffer', 'filename', 'crawling_completed']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.rerun()
+            
+            with col2:
+                if st.button("🗑️ 히스토리 삭제", help="다운로드 히스토리를 모두 삭제합니다"):
+                    history_manager.clear_history()
+                    st.success("히스토리가 삭제되었습니다!")
+                    st.rerun()
     
     # 데이터가 없을 때 안내 메시지
     else:
