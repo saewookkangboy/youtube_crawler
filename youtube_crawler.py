@@ -182,6 +182,12 @@ class ConfigManager:
             'enable_keyword_analysis': os.getenv('ENABLE_KEYWORD_ANALYSIS', 'true').lower() == 'true',
             'max_comments_per_video': int(os.getenv('MAX_COMMENTS_PER_VIDEO', '100')),
             'excel_encoding': os.getenv('EXCEL_ENCODING', 'utf-8-sig'),  # 엑셀 인코딩 설정
+            # 네트워크 최적화 설정 추가
+            'page_load_timeout': int(os.getenv('PAGE_LOAD_TIMEOUT', '20')),
+            'implicit_wait': int(os.getenv('IMPLICIT_WAIT', '5')),
+            'network_idle_timeout': int(os.getenv('NETWORK_IDLE_TIMEOUT', '3')),
+            'connection_timeout': int(os.getenv('CONNECTION_TIMEOUT', '10')),
+            'request_timeout': int(os.getenv('REQUEST_TIMEOUT', '15'))
         }
     
     def get(self, key: str, default=None):
@@ -437,6 +443,30 @@ class YouTubeCrawler:
             chrome_options.add_argument("--headless")
         
         chrome_options.add_argument("--window-size=1920,1080")
+        
+        # 네트워크 최적화 설정
+        chrome_options.add_argument("--disable-http2")
+        chrome_options.add_argument("--disable-quic")
+        chrome_options.add_argument("--disable-background-networking")
+        chrome_options.add_argument("--disable-default-apps")
+        chrome_options.add_argument("--disable-sync")
+        chrome_options.add_argument("--disable-translate")
+        chrome_options.add_argument("--disable-logging")
+        chrome_options.add_argument("--disable-component-extensions-with-background-pages")
+        chrome_options.add_argument("--disable-background-mode")
+        chrome_options.add_argument("--disable-client-side-phishing-detection")
+        chrome_options.add_argument("--disable-hang-monitor")
+        chrome_options.add_argument("--disable-prompt-on-repost")
+        chrome_options.add_argument("--disable-domain-reliability")
+        chrome_options.add_argument("--disable-component-update")
+        chrome_options.add_argument("--disable-features=TranslateUI,BlinkGenPropertyTrees")
+        chrome_options.add_argument("--memory-pressure-off")
+        chrome_options.add_argument("--max_old_space_size=2048")
+        chrome_options.add_argument("--disable-software-rasterizer")
+        
+        # 네트워크 타임아웃 설정
+        chrome_options.add_argument(f"--timeout={self.config.get('page_load_timeout', 20)}")
+        chrome_options.add_argument(f"--implicit-wait={self.config.get('implicit_wait', 5)}")
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
         
         # 자동화 감지 방지
@@ -1587,24 +1617,37 @@ class YouTubeCrawler:
         """메모리 최적화"""
         try:
             # 가비지 컬렉션 실행
-            gc.collect()
+            collected = gc.collect()
+            logger.info(f"가비지 컬렉션 완료: {collected}개 객체 수집")
             
             # 메모리 사용량 확인
             memory_usage = self.monitor.log_memory_usage()
             max_memory = self.config.get('max_memory_mb')
             
-            if memory_usage > max_memory:
-                logger.warning(f"메모리 사용량이 높습니다: {memory_usage:.2f} MB (제한: {max_memory} MB)")
-                
-                # 캐시 삭제로 메모리 확보
-                if self.cache:
-                    self.cache.clear()
-                    logger.info("메모리 최적화를 위해 캐시를 삭제했습니다.")
+            # max_memory가 None이 아닌 경우에만 비교
+            if max_memory is not None and memory_usage is not None:
+                if memory_usage > max_memory:
+                    logger.warning(f"메모리 사용량이 높습니다: {memory_usage:.2f} MB (제한: {max_memory} MB)")
+                    
+                    # 캐시 삭제로 메모리 확보
+                    if self.cache:
+                        self.cache.clear()
+                        logger.info("메모리 최적화를 위해 캐시를 삭제했습니다.")
+                    
+                    # 추가 메모리 정리
+                    gc.collect()
+            else:
+                logger.info(f"현재 메모리 사용량: {memory_usage:.2f} MB")
             
             logger.info("메모리 최적화 완료")
             
         except Exception as e:
             logger.error(f"메모리 최적화 오류: {e}")
+            # 오류가 발생해도 기본적인 가비지 컬렉션은 실행
+            try:
+                gc.collect()
+            except:
+                pass
     
     def close(self):
         """드라이버 종료 및 리소스 정리"""

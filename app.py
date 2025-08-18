@@ -119,38 +119,84 @@ class HistoryManager:
 class CacheManager:
     def __init__(self, cache_dir="cache"):
         self.cache_dir = cache_dir
-        self.max_cache_size = 100 * 1024 * 1024  # 100MB
+        self.max_cache_size = 200 * 1024 * 1024  # 200MB로 증가
+        self.cache_ttl = 24 * 60 * 60  # 24시간 캐시 유효기간
         os.makedirs(cache_dir, exist_ok=True)
+        self._cache_stats = {'hits': 0, 'misses': 0, 'saves': 0}
     
     def get_cache_key(self, data: str) -> str:
-        return hashlib.md5(data.encode()).hexdigest()
+        """더 정교한 캐시 키 생성"""
+        # 데이터와 타임스탬프를 조합하여 키 생성
+        timestamp = str(int(time.time() // (60 * 60)))  # 1시간 단위
+        return hashlib.md5(f"{data}_{timestamp}".encode()).hexdigest()
     
     def get_cache_path(self, key: str) -> str:
         return os.path.join(self.cache_dir, f"{key}.pkl")
     
     def is_cached(self, key: str) -> bool:
-        return os.path.exists(self.get_cache_path(key))
+        """캐시 존재 여부 및 유효성 확인"""
+        cache_path = self.get_cache_path(key)
+        if not os.path.exists(cache_path):
+            self._cache_stats['misses'] += 1
+            return False
+        
+        # TTL 확인
+        file_age = time.time() - os.path.getmtime(cache_path)
+        if file_age > self.cache_ttl:
+            try:
+                os.remove(cache_path)
+                logger.info(f"만료된 캐시 파일 삭제: {key}")
+            except:
+                pass
+            self._cache_stats['misses'] += 1
+            return False
+        
+        self._cache_stats['hits'] += 1
+        return True
     
     def save_to_cache(self, key: str, data: Any):
+        """캐시 저장 및 압축"""
         try:
             import pickle
+            import gzip
             cache_path = self.get_cache_path(key)
-            with open(cache_path, 'wb') as f:
+            
+            # 데이터 압축하여 저장
+            with gzip.open(cache_path, 'wb') as f:
                 pickle.dump(data, f)
+            
+            self._cache_stats['saves'] += 1
             self._cleanup_cache()
+            logger.info(f"캐시 저장 완료: {key} ({len(str(data))} bytes)")
         except Exception as e:
             logger.error(f"캐시 저장 오류: {e}")
     
     def load_from_cache(self, key: str) -> Optional[Any]:
+        """캐시 로드 및 압축 해제"""
         try:
             import pickle
+            import gzip
             cache_path = self.get_cache_path(key)
+            
             if os.path.exists(cache_path):
-                with open(cache_path, 'rb') as f:
-                    return pickle.load(f)
+                with gzip.open(cache_path, 'rb') as f:
+                    data = pickle.load(f)
+                logger.info(f"캐시 로드 완료: {key}")
+                return data
         except Exception as e:
             logger.error(f"캐시 로드 오류: {e}")
         return None
+    
+    def get_cache_stats(self) -> Dict[str, int]:
+        """캐시 통계 반환"""
+        total_requests = self._cache_stats['hits'] + self._cache_stats['misses']
+        hit_rate = (self._cache_stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+        
+        return {
+            **self._cache_stats,
+            'hit_rate': round(hit_rate, 2),
+            'total_requests': total_requests
+        }
     
     def _cleanup_cache(self):
         """캐시 크기 제한 및 오래된 파일 정리"""
@@ -781,9 +827,32 @@ def main():
         
         # 성능 최적화 버튼
         if st.button("🧹 메모리 정리"):
-            gc.collect()
-            st.success("메모리 정리 완료!")
+            # 메모리 정리 전 상태
+            before_memory = performance_monitor.get_memory_usage()
+            
+            # 가비지 컬렉션 실행
+            collected = gc.collect()
+            
+            # 캐시 정리
+            cache_manager._cleanup_cache()
+            
+            # 메모리 정리 후 상태
+            after_memory = performance_monitor.get_memory_usage()
+            memory_freed = before_memory - after_memory
+            
+            st.success(f"메모리 정리 완료! {memory_freed:.1f}MB 해제됨 (수집된 객체: {collected}개)")
             st.rerun()
+        
+        # 캐시 통계 표시
+        cache_stats = cache_manager.get_cache_stats()
+        st.markdown("### 📊 캐시 통계")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("캐시 히트율", f"{cache_stats.get('hit_rate', 0)}%")
+        with col2:
+            st.metric("캐시 저장", cache_stats.get('saves', 0))
+        with col3:
+            st.metric("캐시 요청", cache_stats.get('total_requests', 0))
     
     # 실시간 알림 표시 (현재 비활성화)
     
@@ -848,15 +917,33 @@ def main():
             )
             
             if collect_comments:
-                comments_per_video = st.number_input(
-                    "영상당 댓글 수",
-                    min_value=1, max_value=100, value=10,  # 기본값을 10으로 변경
-                    step=1,
-                    help="영상당 수집할 댓글의 수 (너무 많으면 시간이 오래 걸릴 수 있습니다)"
-                )
-                st.info("💡 댓글 수집은 시간이 오래 걸릴 수 있습니다. 영상당 댓글 수를 조절해보세요.")
+                # 댓글 수집 최적화 설정
+                col1, col2 = st.columns(2)
+                with col1:
+                    comments_per_video = st.number_input(
+                        "영상당 댓글 수",
+                        min_value=1, max_value=50, value=5,  # 기본값을 5로 줄임
+                        step=1,
+                        help="영상당 수집할 댓글의 수 (성능 최적화를 위해 5-10개 권장)"
+                    )
+                
+                with col2:
+                    # 댓글 수집 배치 크기 설정
+                    comment_batch_size = st.number_input(
+                        "댓글 배치 크기",
+                        min_value=5, max_value=20, value=10,
+                        step=5,
+                        help="한 번에 처리할 댓글의 수 (메모리 최적화)"
+                    )
+                
+                # 댓글 수집 최적화 팁
+                st.info("💡 **댓글 수집 최적화**:\n"
+                       "- 영상당 댓글 수를 5-10개로 제한하면 속도가 빨라집니다\n"
+                       "- 배치 크기를 조절하여 메모리 사용량을 제어할 수 있습니다\n"
+                       "- 많은 영상을 처리할 때는 댓글 수집을 비활성화하는 것을 고려하세요")
             else:
                 comments_per_video = 0
+                comment_batch_size = 10
         
         with col3:
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">날짜 & 파일</h3>', unsafe_allow_html=True)
@@ -905,11 +992,30 @@ def main():
                     help="엑셀 파일 저장 시 사용할 인코딩"
                 )
                 
-                max_workers = st.slider(
-                    "동시 처리 수",
-                    min_value=1, max_value=8, value=4,
-                    help="동시에 처리할 작업의 수"
-                )
+                # 동시 처리 수 최적화
+                col1, col2 = st.columns(2)
+                with col1:
+                    max_workers = st.slider(
+                        "동시 처리 수",
+                        min_value=1, max_value=8, value=4,
+                        help="동시에 처리할 작업의 수"
+                    )
+                
+                with col2:
+                    # 시스템 성능에 따른 권장값 표시
+                    cpu_count = psutil.cpu_count()
+                    recommended_workers = min(cpu_count, 6)  # 최대 6개로 제한
+                    
+                    if max_workers > recommended_workers:
+                        st.warning(f"⚠️ 권장 동시 처리 수: {recommended_workers}개")
+                    else:
+                        st.success(f"✅ 권장 동시 처리 수: {recommended_workers}개")
+                
+                # 성능 최적화 팁
+                st.info("💡 **성능 최적화 팁**:\n"
+                       "- 동시 처리 수는 CPU 코어 수의 50-75%가 적절합니다\n"
+                       "- 댓글 수집 시에는 동시 처리 수를 줄이는 것이 안정적입니다\n"
+                       "- 메모리 부족 시 동시 처리 수를 줄여보세요")
             if not filename.endswith('.xlsx'):
                 filename += '.xlsx'
     
@@ -987,12 +1093,19 @@ def main():
             
             add_log("🔬 크롤러 초기화 시작", "info")
             
-            # 설정 적용
+            # 설정 적용 (최적화된 버전)
             config = {
                 'max_workers': max_workers,
                 'enable_keyword_analysis': enable_keyword_analysis,
                 'excel_encoding': excel_encoding,
-                'max_comments_per_video': comments_per_video if collect_comments else 0
+                'max_comments_per_video': comments_per_video if collect_comments else 0,
+                'comment_batch_size': comment_batch_size if collect_comments else 20,
+                # 네트워크 최적화 설정
+                'page_load_timeout': 20,
+                'implicit_wait': 5,
+                'network_idle_timeout': 3,
+                'connection_timeout': 10,
+                'request_timeout': 15
             }
             
             crawler = YouTubeCrawler()
