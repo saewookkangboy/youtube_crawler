@@ -1056,7 +1056,7 @@ def main():
             # 키워드 검증
             if not keywords:
                 st.warning("⚠️ 최소 1개의 키워드를 입력해주세요.")
-                st.stop()
+                return
         
         with col2:
             st.markdown('<h3 style="color: #4a5568; font-size: 1.1rem; font-weight: 500;">수집 설정</h3>', unsafe_allow_html=True)
@@ -1182,7 +1182,12 @@ def main():
     
     # 크롤링 실행 버튼 (중앙 배치)
     st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
-    if st.button("🎯 크롤링 시작", type="primary", use_container_width=False, help="설정된 조건으로 크롤링을 시작합니다"):
+    
+    # 키워드가 있을 때만 버튼 활성화
+    button_disabled = not keywords
+    if st.button("🎯 크롤링 시작", type="primary", use_container_width=False, 
+                disabled=button_disabled, 
+                help="설정된 조건으로 크롤링을 시작합니다" if not button_disabled else "키워드를 입력해주세요"):
         # 크롤링 시작 시 세션 상태 초기화
         st.session_state.crawling_completed = False
         st.session_state.crawling_logs = []
@@ -1207,7 +1212,7 @@ def main():
         
         if not keywords:
             st.error("❌ 키워드를 입력해주세요.")
-            st.stop()
+            return
         
         # 콤팩트한 진행 상황 표시
         progress_container = st.container()
