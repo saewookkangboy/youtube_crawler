@@ -809,6 +809,9 @@ def main():
     # 서브타이틀
     st.markdown('<p style="text-align: center; color: #4a5568; font-size: 1.1rem; margin-bottom: 2rem; font-weight: 400;">유튜브 데이터 수집 및 분석 서비스(since 2025)</p>', unsafe_allow_html=True)
     
+    # 서비스 탭 선택
+    tab1, tab2 = st.tabs(["🎯 키워드 기반 크롤링", "💬 영상 ID 댓글 추출"])
+    
     # 시스템 상태 표시
     with st.sidebar:
         st.markdown("### 🔧 시스템 상태")
@@ -865,10 +868,12 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
-    with st.container():
-        # 상단 설정 영역
-        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">크롤링 설정</h2>', unsafe_allow_html=True)
+    # 첫 번째 탭: 키워드 기반 크롤링
+    with tab1:
+        # 통합 레이아웃 - 상단에 설정, 하단에 크롤링과 분석을 나란히 배치
+        with st.container():
+            # 상단 설정 영역
+            st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">키워드 기반 크롤링 설정</h2>', unsafe_allow_html=True)
         
         # 설정을 3개 컬럼으로 배치
         col1, col2, col3 = st.columns([1, 1, 1])
@@ -1668,6 +1673,178 @@ def main():
             </div>
         </div>
         """, unsafe_allow_html=True)
+    
+    # 두 번째 탭: 영상 ID 댓글 추출
+    with tab2:
+        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">💬 영상 ID 댓글 추출</h2>', unsafe_allow_html=True)
+        
+        # 영상 ID 입력 섹션
+        st.markdown("### 📝 영상 ID 입력")
+        st.info("💡 **영상 ID 찾는 방법**:\n"
+               "1. 유튜브 영상 URL에서 `v=` 뒤의 11자리 코드\n"
+               "2. 예시: `https://www.youtube.com/watch?v=dQw4w9WgXcQ` → `dQw4w9WgXcQ`\n"
+               "3. 여러 영상의 댓글을 한 번에 수집할 수 있습니다")
+        
+        # 영상 ID 입력 방식 선택
+        input_method = st.radio(
+            "입력 방식 선택",
+            ["단일 영상 ID", "여러 영상 ID (한 줄에 하나씩)"],
+            help="하나의 영상 ID를 입력하거나 여러 영상 ID를 한 번에 입력할 수 있습니다"
+        )
+        
+        if input_method == "단일 영상 ID":
+            video_id = st.text_input(
+                "영상 ID",
+                placeholder="예: dQw4w9WgXcQ",
+                help="추출할 댓글의 영상 ID를 입력하세요"
+            )
+            video_ids = [video_id.strip()] if video_id.strip() else []
+        else:
+            video_ids_text = st.text_area(
+                "영상 ID 목록",
+                placeholder="dQw4w9WgXcQ\njNQXAC9IVRw\n...",
+                height=150,
+                help="한 줄에 하나씩 영상 ID를 입력하세요"
+            )
+            video_ids = [vid.strip() for vid in video_ids_text.split('\n') if vid.strip()]
+        
+        # 댓글 수집 설정
+        st.markdown("### ⚙️ 댓글 수집 설정")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            comments_per_video = st.number_input(
+                "영상당 댓글 수",
+                min_value=1, max_value=100, value=20,
+                step=1,
+                help="각 영상에서 수집할 댓글의 수"
+            )
+        
+        with col2:
+            enable_keyword_analysis = st.checkbox(
+                "키워드 분석",
+                value=True,
+                help="댓글에서 키워드 및 감정 분석 수행"
+            )
+        
+        # 크롤링 시작 버튼
+        if st.button("🚀 댓글 추출 시작", type="primary", use_container_width=True):
+            if not video_ids:
+                st.error("❌ 영상 ID를 입력해주세요.")
+            else:
+                # 댓글 추출 진행
+                with st.spinner("🔄 댓글 추출 중..."):
+                    try:
+                        # 크롤러 초기화
+                        crawler = YouTubeCrawler()
+                        
+                        # 설정 적용
+                        config = {
+                            'max_workers': 2,  # 댓글 수집은 적은 워커 사용
+                            'enable_keyword_analysis': enable_keyword_analysis,
+                            'excel_encoding': 'utf-8-sig',
+                            'max_comments_per_video': comments_per_video,
+                            'comment_batch_size': 10
+                        }
+                        crawler.update_config(config)
+                        
+                        # 댓글 수집
+                        all_comments = []
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        for i, video_id in enumerate(video_ids):
+                            status_text.text(f"📹 영상 {i+1}/{len(video_ids)} 처리 중: {video_id}")
+                            
+                            try:
+                                comments = crawler.get_video_comments(video_id, comments_per_video)
+                                if comments:
+                                    # 영상 ID 정보 추가
+                                    for comment in comments:
+                                        comment['video_id'] = video_id
+                                    all_comments.extend(comments)
+                                    st.success(f"✅ {video_id}: {len(comments)}개 댓글 수집 완료")
+                                else:
+                                    st.warning(f"⚠️ {video_id}: 댓글을 찾을 수 없습니다")
+                            except Exception as e:
+                                st.error(f"❌ {video_id}: 오류 발생 - {str(e)}")
+                            
+                            progress_bar.progress((i + 1) / len(video_ids))
+                        
+                        crawler.close()
+                        
+                        # 결과 저장
+                        if all_comments:
+                            st.session_state.comments_only = all_comments
+                            st.session_state.comments_extraction_completed = True
+                            st.session_state.video_ids_processed = video_ids
+                            
+                            st.success(f"🎉 댓글 추출 완료! 총 {len(all_comments)}개 댓글을 수집했습니다.")
+                            st.rerun()
+                        else:
+                            st.error("❌ 수집된 댓글이 없습니다.")
+                    
+                    except Exception as e:
+                        st.error(f"❌ 댓글 추출 중 오류 발생: {str(e)}")
+        
+        # 댓글 추출 결과 표시
+        if hasattr(st.session_state, 'comments_extraction_completed') and st.session_state.comments_extraction_completed:
+            st.markdown("---")
+            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📊 댓글 추출 결과</h3>', unsafe_allow_html=True)
+            
+            comments = st.session_state.get('comments_only', [])
+            video_ids_processed = st.session_state.get('video_ids_processed', [])
+            
+            # 결과 통계
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("처리된 영상", len(video_ids_processed))
+            with col2:
+                st.metric("수집된 댓글", len(comments))
+            with col3:
+                avg_comments = len(comments) / len(video_ids_processed) if video_ids_processed else 0
+                st.metric("평균 댓글/영상", f"{avg_comments:.1f}")
+            
+            # 댓글 데이터 표시
+            if comments:
+                df_comments = pd.DataFrame(comments)
+                st.dataframe(df_comments, use_container_width=True)
+                
+                # 파일 다운로드
+                st.markdown("### 📥 댓글 데이터 다운로드")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    # CSV 다운로드
+                    csv_data = df_comments.to_csv(index=False, encoding='utf-8-sig')
+                    st.download_button(
+                        label="📥 CSV 다운로드",
+                        data=csv_data,
+                        file_name=f"comments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+                
+                with col2:
+                    # 엑셀 다운로드
+                    from io import BytesIO
+                    with BytesIO() as buffer:
+                        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                            df_comments.to_excel(writer, sheet_name='Comments', index=False)
+                        excel_data = buffer.getvalue()
+                    
+                    st.download_button(
+                        label="📥 Excel 다운로드",
+                        data=excel_data,
+                        file_name=f"comments_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                
+                # 데이터 초기화
+                if st.button("🗑️ 댓글 데이터 초기화"):
+                    for key in ['comments_only', 'comments_extraction_completed', 'video_ids_processed']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.rerun()
 
 if __name__ == "__main__":
     main() 
