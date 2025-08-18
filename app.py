@@ -1185,7 +1185,7 @@ def main():
     
     # 키워드가 있을 때만 버튼 활성화
     button_disabled = not keywords
-    if st.button("🎯 크롤링 시작", type="primary", use_container_width=False, 
+    if _ := st.button("🎯 크롤링 시작", type="primary", use_container_width=False, 
                 disabled=button_disabled, 
                 help="설정된 조건으로 크롤링을 시작합니다" if not button_disabled else "키워드를 입력해주세요"):
         # 크롤링 시작 시 세션 상태 초기화
@@ -1623,214 +1623,214 @@ def main():
     # 구분선
     st.markdown("---")
     
-    # 결과 미리보기 및 파일 다운로드 영역
-    if hasattr(st.session_state, 'crawling_completed') and st.session_state.crawling_completed:
-        st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">📊 크롤링 결과 미리보기</h2>', unsafe_allow_html=True)
-        
-        videos = st.session_state.get('videos', [])
-        comments = st.session_state.get('comments', [])
-        
-        # 상단 메트릭 카드들
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="text-align: center;">
-                    <h3 style="color: #FF6B6B; font-size: 2rem; margin: 0;">{len(videos)}</h3>
-                    <p style="color: #666; margin: 0;">수집된 영상</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="text-align: center;">
-                    <h3 style="color: #4ECDC4; font-size: 2rem; margin: 0;">{len(comments)}</h3>
-                    <p style="color: #666; margin: 0;">수집된 댓글</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            unique_channels = len(set([video.get('channel_name', 'Unknown') for video in videos]))
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="text-align: center;">
-                    <h3 style="color: #FFD93D; font-size: 2rem; margin: 0;">{unique_channels}</h3>
-                    <p style="color: #666; margin: 0;">채널 수</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="text-align: center;">
-                    <h3 style="color: #A8E6CF; font-size: 2rem; margin: 0;">📅</h3>
-                    <p style="color: #666; margin: 0;">수집 완료</p>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # 데이터 미리보기와 파일 다운로드를 나란히 배치
-        col_preview, col_download = st.columns([2, 1])
-        
-        with col_preview:
-            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📋 데이터 미리보기</h3>', unsafe_allow_html=True)
+        # 첫 번째 탭의 결과 미리보기 및 파일 다운로드 영역
+        if hasattr(st.session_state, 'crawling_completed') and st.session_state.crawling_completed:
+            st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">📊 크롤링 결과 미리보기</h2>', unsafe_allow_html=True)
             
-            # 탭 생성
-            tab1, tab2 = st.tabs(["🎥 영상 목록", "💬 댓글 목록"])
+            videos = st.session_state.get('videos', [])
+            comments = st.session_state.get('comments', [])
             
-            with tab1:
-                if videos:
-                    df_videos = pd.DataFrame(videos)
-                    st.dataframe(df_videos.head(10), use_container_width=True)  # 상위 10개만 표시
-                    if len(videos) > 10:
-                        st.info(f"📊 총 {len(videos)}개 영상 중 상위 10개를 표시합니다.")
-                else:
-                    st.info("🎥 수집된 영상이 없습니다.")
-            
-            with tab2:
-                if comments and len(comments) > 0:
-                    df_comments = pd.DataFrame(comments)
-                    st.dataframe(df_comments.head(10), use_container_width=True)  # 상위 10개만 표시
-                    if len(comments) > 10:
-                        st.info(f"📊 총 {len(comments)}개 댓글 중 상위 10개를 표시합니다.")
-                    
-                    # 댓글 데이터 디버깅 정보
-                    with st.expander("🔧 댓글 데이터 디버깅 정보"):
-                        st.write(f"**댓글 개수**: {len(comments)}개")
-                        st.write(f"**댓글 컬럼**: {list(df_comments.columns)}")
-                        if len(comments) > 0:
-                            st.write(f"**첫 번째 댓글 샘플**:")
-                            st.json(comments[0])
-                else:
-                    st.warning("💬 수집된 댓글이 없습니다.")
-                    st.info("💡 댓글 수집이 비활성화되었거나 댓글 수집에 실패했을 수 있습니다.")
-        
-        with col_download:
-            st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📥 파일 다운로드</h3>', unsafe_allow_html=True)
-            
-            # 파일 형식 선택
-            file_format = st.selectbox(
-                "파일 형식 선택",
-                options=["XLSX (Excel)", "CSV"],
-                help="다운로드할 파일 형식을 선택하세요"
-            )
-            
-            # 새로고침 버튼
-            if st.button("🔄 새로고침", help="페이지를 새로고침합니다"):
-                st.rerun()
-            
-            # 파일 다운로드 버튼들
-            if file_format == "XLSX (Excel)" and hasattr(st.session_state, 'excel_buffer'):
-                excel_data = st.session_state.excel_buffer
-                filename = st.session_state.get('filename', 'youtube_data.xlsx')
-                
-                # 히스토리에 다운로드 기록 추가
-                download_record = history_manager.add_download_record(
-                    filename=filename,
-                    data_type="Excel",
-                    record_count=len(videos) + len(comments),
-                    file_size=len(excel_data),
-                    download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                )
-                
-                st.download_button(
-                    label="📥 엑셀 파일 다운로드",
-                    data=excel_data,
-                    file_name=filename,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    help="수집된 모든 데이터가 포함된 엑셀 파일을 다운로드합니다"
-                )
-            
-            elif file_format == "CSV":
-                if videos:
-                    videos_df = pd.DataFrame(videos)
-                    csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
-                    
-                    # 히스토리에 다운로드 기록 추가
-                    history_manager.add_download_record(
-                        filename="videos.csv",
-                        data_type="CSV (Videos)",
-                        record_count=len(videos),
-                        file_size=len(csv_videos.encode('utf-8-sig')),
-                        download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    )
-                    
-                    st.download_button(
-                        label="📥 영상 데이터 CSV",
-                        data=csv_videos,
-                        file_name="videos.csv",
-                        mime="text/csv",
-                        help="영상 데이터만 포함된 CSV 파일을 다운로드합니다"
-                    )
-                
-                if comments:
-                    comments_df = pd.DataFrame(comments)
-                    csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
-                    
-                    # 히스토리에 다운로드 기록 추가
-                    history_manager.add_download_record(
-                        filename="comments.csv",
-                        data_type="CSV (Comments)",
-                        record_count=len(comments),
-                        file_size=len(csv_comments.encode('utf-8-sig')),
-                        download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    )
-                    
-                    st.download_button(
-                        label="📥 댓글 데이터 CSV",
-                        data=csv_comments,
-                        file_name="comments.csv",
-                        mime="text/csv",
-                        help="댓글 데이터만 포함된 CSV 파일을 다운로드합니다"
-                    )
-            
-            # 히스토리 관리 섹션
-            st.markdown("---")
-            st.markdown("### 📋 다운로드 히스토리")
-            
-            recent_history = history_manager.get_recent_history(5)
-            if recent_history:
-                for record in recent_history:
-                    with st.expander(f"📄 {record['filename']} ({record['download_time']})"):
-                        st.write(f"**파일 유형**: {record['data_type']}")
-                        st.write(f"**레코드 수**: {record['record_count']:,}개")
-                        st.write(f"**파일 크기**: {record['file_size_mb']} MB")
-                        st.write(f"**다운로드 시간**: {record['download_time']}")
-            else:
-                st.info("📋 다운로드 히스토리가 없습니다.")
-            
-            # 히스토리 관리 버튼들
-            col1, col2 = st.columns(2)
+            # 상단 메트릭 카드들
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                if st.button("🗑️ 데이터 초기화", help="수집된 데이터를 모두 삭제합니다"):
-                    for key in ['videos', 'comments', 'excel_buffer', 'filename', 'crawling_completed']:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    st.rerun()
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div style="text-align: center;">
+                        <h3 style="color: #FF6B6B; font-size: 2rem; margin: 0;">{len(videos)}</h3>
+                        <p style="color: #666; margin: 0;">수집된 영상</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             
             with col2:
-                if st.button("🗑️ 히스토리 삭제", help="다운로드 히스토리를 모두 삭제합니다"):
-                    history_manager.clear_history()
-                    st.success("히스토리가 삭제되었습니다!")
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div style="text-align: center;">
+                        <h3 style="color: #4ECDC4; font-size: 2rem; margin: 0;">{len(comments)}</h3>
+                        <p style="color: #666; margin: 0;">수집된 댓글</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                unique_channels = len(set([video.get('channel_name', 'Unknown') for video in videos]))
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div style="text-align: center;">
+                        <h3 style="color: #FFD93D; font-size: 2rem; margin: 0;">{unique_channels}</h3>
+                        <p style="color: #666; margin: 0;">채널 수</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div style="text-align: center;">
+                        <h3 style="color: #A8E6CF; font-size: 2rem; margin: 0;">📅</h3>
+                        <p style="color: #666; margin: 0;">수집 완료</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # 데이터 미리보기와 파일 다운로드를 나란히 배치
+            col_preview, col_download = st.columns([2, 1])
+            
+            with col_preview:
+                st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📋 데이터 미리보기</h3>', unsafe_allow_html=True)
+                
+                # 탭 생성
+                tab1, tab2 = st.tabs(["🎥 영상 목록", "💬 댓글 목록"])
+                
+                with tab1:
+                    if videos:
+                        df_videos = pd.DataFrame(videos)
+                        st.dataframe(df_videos.head(10), use_container_width=True)  # 상위 10개만 표시
+                        if len(videos) > 10:
+                            st.info(f"📊 총 {len(videos)}개 영상 중 상위 10개를 표시합니다.")
+                    else:
+                        st.info("🎥 수집된 영상이 없습니다.")
+                
+                with tab2:
+                    if comments and len(comments) > 0:
+                        df_comments = pd.DataFrame(comments)
+                        st.dataframe(df_comments.head(10), use_container_width=True)  # 상위 10개만 표시
+                        if len(comments) > 10:
+                            st.info(f"📊 총 {len(comments)}개 댓글 중 상위 10개를 표시합니다.")
+                        
+                        # 댓글 데이터 디버깅 정보
+                        with st.expander("🔧 댓글 데이터 디버깅 정보"):
+                            st.write(f"**댓글 개수**: {len(comments)}개")
+                            st.write(f"**댓글 컬럼**: {list(df_comments.columns)}")
+                            if len(comments) > 0:
+                                st.write(f"**첫 번째 댓글 샘플**:")
+                                st.json(comments[0])
+                    else:
+                        st.warning("💬 수집된 댓글이 없습니다.")
+                        st.info("💡 댓글 수집이 비활성화되었거나 댓글 수집에 실패했을 수 있습니다.")
+            
+            with col_download:
+                st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📥 파일 다운로드</h3>', unsafe_allow_html=True)
+                
+                # 파일 형식 선택
+                file_format = st.selectbox(
+                    "파일 형식 선택",
+                    options=["XLSX (Excel)", "CSV"],
+                    help="다운로드할 파일 형식을 선택하세요"
+                )
+                
+                # 새로고침 버튼
+                if st.button("🔄 새로고침", help="페이지를 새로고침합니다"):
                     st.rerun()
-    
-    # 데이터가 없을 때 안내 메시지
-    else:
-        st.markdown("""
-        <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 10px; margin: 2rem 0;">
-            <h3 style="color: #4a5568; margin-bottom: 1rem;">🚀 크롤링을 시작해보세요!</h3>
-            <p style="color: #666; margin-bottom: 2rem;">위의 설정을 완료하고 크롤링 시작 버튼을 눌러 데이터를 수집하세요.</p>
-            <div style="display: flex; justify-content: center; gap: 1rem;">
-                <div style="background: #4ECDC4; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">🔍 영상 검색</div>
-                <div style="background: #FF6B6B; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">💬 댓글 수집</div>
-                <div style="background: #FFD93D; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">📊 데이터 분석</div>
+                
+                # 파일 다운로드 버튼들
+                if file_format == "XLSX (Excel)" and hasattr(st.session_state, 'excel_buffer'):
+                    excel_data = st.session_state.excel_buffer
+                    filename = st.session_state.get('filename', 'youtube_data.xlsx')
+                    
+                    # 히스토리에 다운로드 기록 추가
+                    download_record = history_manager.add_download_record(
+                        filename=filename,
+                        data_type="Excel",
+                        record_count=len(videos) + len(comments),
+                        file_size=len(excel_data),
+                        download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                    
+                    st.download_button(
+                        label="📥 엑셀 파일 다운로드",
+                        data=excel_data,
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        help="수집된 모든 데이터가 포함된 엑셀 파일을 다운로드합니다"
+                    )
+                
+                elif file_format == "CSV":
+                    if videos:
+                        videos_df = pd.DataFrame(videos)
+                        csv_videos = videos_df.to_csv(index=False, encoding='utf-8-sig')
+                        
+                        # 히스토리에 다운로드 기록 추가
+                        history_manager.add_download_record(
+                            filename="videos.csv",
+                            data_type="CSV (Videos)",
+                            record_count=len(videos),
+                            file_size=len(csv_videos.encode('utf-8-sig')),
+                            download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        )
+                        
+                        st.download_button(
+                            label="📥 영상 데이터 CSV",
+                            data=csv_videos,
+                            file_name="videos.csv",
+                            mime="text/csv",
+                            help="영상 데이터만 포함된 CSV 파일을 다운로드합니다"
+                        )
+                    
+                    if comments:
+                        comments_df = pd.DataFrame(comments)
+                        csv_comments = comments_df.to_csv(index=False, encoding='utf-8-sig')
+                        
+                        # 히스토리에 다운로드 기록 추가
+                        history_manager.add_download_record(
+                            filename="comments.csv",
+                            data_type="CSV (Comments)",
+                            record_count=len(comments),
+                            file_size=len(csv_comments.encode('utf-8-sig')),
+                            download_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        )
+                        
+                        st.download_button(
+                            label="📥 댓글 데이터 CSV",
+                            data=csv_comments,
+                            file_name="comments.csv",
+                            mime="text/csv",
+                            help="댓글 데이터만 포함된 CSV 파일을 다운로드합니다"
+                        )
+                
+                # 히스토리 관리 섹션
+                st.markdown("---")
+                st.markdown("### 📋 다운로드 히스토리")
+                
+                recent_history = history_manager.get_recent_history(5)
+                if recent_history:
+                    for record in recent_history:
+                        with st.expander(f"📄 {record['filename']} ({record['download_time']})"):
+                            st.write(f"**파일 유형**: {record['data_type']}")
+                            st.write(f"**레코드 수**: {record['record_count']:,}개")
+                            st.write(f"**파일 크기**: {record['file_size_mb']} MB")
+                            st.write(f"**다운로드 시간**: {record['download_time']}")
+                else:
+                    st.info("📋 다운로드 히스토리가 없습니다.")
+                
+                # 히스토리 관리 버튼들
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("🗑️ 데이터 초기화", help="수집된 데이터를 모두 삭제합니다"):
+                        for key in ['videos', 'comments', 'excel_buffer', 'filename', 'crawling_completed']:
+                            if key in st.session_state:
+                                del st.session_state[key]
+                        st.rerun()
+                
+                with col2:
+                    if st.button("🗑️ 히스토리 삭제", help="다운로드 히스토리를 모두 삭제합니다"):
+                        history_manager.clear_history()
+                        st.success("히스토리가 삭제되었습니다!")
+                        st.rerun()
+        
+        # 첫 번째 탭의 데이터가 없을 때 안내 메시지
+        else:
+            st.markdown("""
+            <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 10px; margin: 2rem 0;">
+                <h3 style="color: #4a5568; margin-bottom: 1rem;">🚀 크롤링을 시작해보세요!</h3>
+                <p style="color: #666; margin-bottom: 2rem;">위의 설정을 완료하고 크롤링 시작 버튼을 눌러 데이터를 수집하세요.</p>
+                <div style="display: flex; justify-content: center; gap: 1rem;">
+                    <div style="background: #4ECDC4; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">🔍 영상 검색</div>
+                    <div style="background: #FF6B6B; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">💬 댓글 수집</div>
+                    <div style="background: #FFD93D; color: white; padding: 0.5rem 1rem; border-radius: 5px; font-size: 0.9rem;">📊 데이터 분석</div>
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
     # 두 번째 탭: 영상 ID 댓글 추출
     with tab2:
@@ -1886,7 +1886,7 @@ def main():
             )
         
         # 크롤링 시작 버튼
-        if st.button("🚀 댓글 추출 시작", type="primary", use_container_width=True):
+        if _ := st.button("🚀 댓글 추출 시작", type="primary", use_container_width=True):
             if not video_ids:
                 st.error("❌ 영상 ID를 입력해주세요.")
             else:
