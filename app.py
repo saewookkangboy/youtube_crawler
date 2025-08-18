@@ -1138,7 +1138,7 @@ def main():
             # 고급 설정
             with st.expander("고급 설정"):
                 enable_keyword_analysis = st.checkbox(
-                    "키워드 분석",
+                    "영상 키워드 분석",
                     value=True,
                     help="댓글에서 키워드 및 감정 분석 수행"
                 )
@@ -1875,7 +1875,7 @@ def main():
         
         with col2:
             enable_keyword_analysis = st.checkbox(
-                "키워드 분석",
+                "댓글 키워드 분석",
                 value=True,
                 help="댓글에서 키워드 및 감정 분석 수행"
             )
