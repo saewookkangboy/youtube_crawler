@@ -1742,6 +1742,68 @@ def main():
                     else:
                         st.warning("💬 수집된 댓글이 없습니다.")
                         st.info("💡 댓글 수집이 비활성화되었거나 댓글 수집에 실패했을 수 있습니다.")
+                    
+                    # 영상 ID 입력 및 댓글 추출 기능 추가
+                    st.markdown("---")
+                    st.markdown("### 🎯 추가 댓글 추출")
+                    st.info("💡 **영상 ID를 입력하여 추가 댓글을 추출할 수 있습니다**")
+                    
+                    # 영상 ID 입력
+                    additional_video_id = st.text_input(
+                        "추가 영상 ID",
+                        placeholder="예: dQw4w9WgXcQ",
+                        help="추가로 댓글을 추출할 영상 ID를 입력하세요"
+                    )
+                    
+                    if additional_video_id.strip():
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            additional_comments_count = st.number_input(
+                                "추출할 댓글 수",
+                                min_value=1, max_value=50, value=10,
+                                step=1,
+                                help="추출할 댓글의 수"
+                            )
+                        with col2:
+                            if _ := st.button("🚀 추가 댓글 추출", type="primary", use_container_width=True):
+                                with st.spinner("🔄 추가 댓글 추출 중..."):
+                                    try:
+                                        # 크롤러 초기화
+                                        crawler = YouTubeCrawler()
+                                        
+                                        # 설정 적용
+                                        config = {
+                                            'max_workers': 2,
+                                            'enable_keyword_analysis': True,
+                                            'excel_encoding': 'utf-8-sig',
+                                            'max_comments_per_video': additional_comments_count,
+                                            'comment_batch_size': 10
+                                        }
+                                        crawler.update_config(config)
+                                        
+                                        # 댓글 수집
+                                        additional_comments = crawler.get_video_comments(additional_video_id, additional_comments_count)
+                                        
+                                        if additional_comments:
+                                            # 영상 ID 정보 추가
+                                            for comment in additional_comments:
+                                                comment['video_id'] = additional_video_id
+                                            
+                                            # 기존 댓글에 추가
+                                            if 'comments' in st.session_state:
+                                                st.session_state.comments.extend(additional_comments)
+                                            else:
+                                                st.session_state.comments = additional_comments
+                                            
+                                            st.success(f"✅ {additional_video_id}: {len(additional_comments)}개 댓글 추가 완료!")
+                                            st.rerun()
+                                        else:
+                                            st.warning(f"⚠️ {additional_video_id}: 댓글을 찾을 수 없습니다")
+                                        
+                                        crawler.close()
+                                        
+                                    except Exception as e:
+                                        st.error(f"❌ 추가 댓글 추출 중 오류 발생: {str(e)}")
             
             with col_download:
                 st.markdown('<h3 style="color: #1a202c; font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem;">📥 파일 다운로드</h3>', unsafe_allow_html=True)
