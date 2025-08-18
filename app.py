@@ -1181,18 +1181,49 @@ def main():
     # 구분선
     st.markdown("---")
     
+    # 크롤링 상태 초기화
+    if 'crawling_in_progress' not in st.session_state:
+        st.session_state.crawling_in_progress = False
+    
     # 크롤링 실행 버튼 (중앙 배치)
     st.markdown('<div style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
     
-    # 키워드가 있을 때만 버튼 활성화
-    button_disabled = not keywords
-    if _ := st.button("🎯 크롤링 시작", type="primary", use_container_width=False, 
-                disabled=button_disabled, 
-                help="설정된 조건으로 크롤링을 시작합니다" if not button_disabled else "키워드를 입력해주세요"):
-        # 크롤링 시작 시 세션 상태 초기화
-        st.session_state.crawling_completed = False
-        st.session_state.crawling_logs = []
+    # 크롤링 상태에 따른 버튼 표시
+    col_start, col_stop = st.columns(2)
+    
+    with col_start:
+        # 키워드가 있을 때만 버튼 활성화
+        button_disabled = not keywords or st.session_state.crawling_in_progress
         
+        if st.session_state.crawling_in_progress:
+            button_text = "🔄 크롤링 재시작"
+            button_help = "크롤링을 다시 시작합니다"
+        else:
+            button_text = "🎯 크롤링 시작"
+            button_help = "설정된 조건으로 크롤링을 시작합니다" if not button_disabled else "키워드를 입력해주세요"
+        
+                if _ := st.button(button_text, type="primary", use_container_width=True, 
+                    disabled=button_disabled, 
+                    help=button_help):
+            # 크롤링 시작 시 세션 상태 초기화
+            st.session_state.crawling_completed = False
+            st.session_state.crawling_logs = []
+            st.session_state.crawling_in_progress = True
+    
+    with col_stop:
+        # 크롤링 중단 버튼
+        if _ := st.button("⏹️ 크롤링 중단", type="secondary", use_container_width=True,
+                    disabled=not st.session_state.crawling_in_progress,
+                    help="진행 중인 크롤링을 중단합니다"):
+            st.session_state.crawling_in_progress = False
+            st.session_state.crawling_completed = False
+            st.success("⏹️ 크롤링이 중단되었습니다.")
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 크롤링이 진행 중일 때만 실행
+    if st.session_state.crawling_in_progress:
         # 성능 모니터링 시작
         performance_monitor.start_monitoring()
         
@@ -1587,6 +1618,7 @@ def main():
                 
                 # 크롤링 완료 상태 저장
                 st.session_state.crawling_completed = True
+                st.session_state.crawling_in_progress = False
                 
         except Exception as e:
             error_msg = str(e)
