@@ -1623,8 +1623,8 @@ def main():
     # 구분선
     st.markdown("---")
     
-        # 첫 번째 탭의 결과 미리보기 및 파일 다운로드 영역
-        if hasattr(st.session_state, 'crawling_completed') and st.session_state.crawling_completed:
+    # 첫 번째 탭의 결과 미리보기 및 파일 다운로드 영역
+    if hasattr(st.session_state, 'crawling_completed') and st.session_state.crawling_completed:
             st.markdown('<h2 style="color: #1a202c; font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">📊 크롤링 결과 미리보기</h2>', unsafe_allow_html=True)
             
             videos = st.session_state.get('videos', [])
